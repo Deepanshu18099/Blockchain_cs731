@@ -1,10 +1,6 @@
 package models
 
 
-type User struct {
-	ID       string `gorm:"primaryKey" json:"id"`
-	Username string `json:"username"`
-}
 
 type Ticket struct {
 	ID          string `gorm:"primaryKey" json:"id"`
@@ -17,7 +13,13 @@ type Ticket struct {
 	Price       float64 `json:"price"`
 	Status      string `json:"status"` // e.g. PENDING, CONFIRMED
 }
-
+type Ticket1 struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Price       float64 `json:"price"`
+	Destination string  `json:"destination"`
+	Source      string  `json:"source"`
+}
 // Used for input validation
 type TicketRequest struct {
 	UserID      string  `json:"user_id" binding:"required"`
