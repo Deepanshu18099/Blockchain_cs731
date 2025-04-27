@@ -25,10 +25,10 @@ const Signin = () => {
         setErrors({ api: "Error signing in" });
         return;
       }
+      console.log(response)
+      const { token, userid, role, balance } = response.data
 
-      const { token, userid, role } = response.data;
-
-      login(token, userid, role);  // update context + localStorage
+      login(token, userid, role, balance)
 
       navigate("/home");
     } catch (error) {
