@@ -2,10 +2,12 @@
 import React, { useState } from "react";
 import { useAuth } from "./Authcontext"; 
 import { Link } from "react-router-dom";
+import { FaUserCircle } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 function Home() {
   const { userId, role, balance } = useAuth();
-
+  
   const sampleData = {
     flight: [
       { id: 1, source: "Delhi", destination: "Mumbai", price: 5000, date: "2023-10-01" },
@@ -25,109 +27,163 @@ function Home() {
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // navigate
+  const navigate = useNavigate();
 
   const handleBooking = () => {
     alert(`Booking a ${mode} ticket from ${source} to ${destination} on ${date}`);
   };
 
+  
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    navigate("/signin");
+  };
   const travelOptions = sampleData[mode] || [];
 
+  const handleAddMoney = () => {
+    alert("Feature to add money coming soon!");
+  };
+
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4 text-center">Welcome to MyTravel.com</h2>
-        
-        {userId ? (
-          <div className="mb-6">
-            <p className="text-sm">User ID: {userId}</p>
-            <p className="text-sm">Role: {role}</p>
-            <p className="text-sm mb-2">Balance: {balance}</p>
-          </div>
-        ) : (
-          <div className="mb-6">
-            <p className="mb-2">Please sign up or sign in to continue.</p>
-            <div className="flex justify-center gap-4">
-              <Link to="/signup" className="text-blue-500 hover:underline">
-                Sign Up
-              </Link>
-              <Link to="/signin" className="text-blue-500 hover:underline">
-                Sign In
-              </Link>
+    <div className="min-h-screen bg-gray-100">
+      {/* Navbar */}
+      <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+        <div className="text-xl font-bold text-blue-600">MyTravel.com</div>
+
+        {userId && (
+          <div className="flex items-center gap-6">
+            <div className="text-sm text-gray-700">
+              <div><strong>Balance:</strong> ₹{balance}</div>
+              <button
+                onClick={handleAddMoney}
+                className="mt-1 text-xs bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600"
+              >
+                Add Money
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-700 hidden md:block">
+              <div><strong>Role:</strong> {role}</div>
+              <div><strong>UserID:</strong> {userId}</div>
+            </div>
+
+            {/* User Icon Dropdown */}
+            <div className="relative">
+              <FaUserCircle
+                className="text-3xl text-gray-600 cursor-pointer"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              />
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-md">
+                  <button
+                    onClick={handleSignOut}
+                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
+      </nav>
 
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Mode of Travel</label>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-            className="w-full border rounded p-2"
+      {/* Main Content */}
+      <div className="flex flex-col items-center justify-center p-6">
+        <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
+          <h2 className="text-xl font-bold mb-4 text-center">Welcome to MyTravel.com</h2>
+
+          {!userId ? (
+            <div className="mb-6">
+              <p className="mb-2">Please sign up or sign in to continue.</p>
+              <div className="flex justify-center gap-4">
+                <Link to="/signup" className="text-blue-500 hover:underline">
+                  Sign Up
+                </Link>
+                <Link to="/signin" className="text-blue-500 hover:underline">
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <></> // User details are already in navbar
+          )}
+
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Mode of Travel</label>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="w-full border rounded p-2"
+            >
+              <option value="flight">Flight</option>
+              <option value="train">Train</option>
+              <option value="bus">Bus</option>
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Source</label>
+            <input
+              type="text"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Enter source"
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Destination</label>
+            <input
+              type="text"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder="Enter destination"
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Date of Travel</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <button
+            onClick={handleBooking}
+            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
           >
-            <option value="flight">Flight</option>
-            <option value="train">Train</option>
-            <option value="bus">Bus</option>
-          </select>
-        </div>
+            Fetch Available Options
+          </button>
 
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Source</label>
-          <input
-            type="text"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            placeholder="Enter source"
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Destination</label>
-          <input
-            type="text"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="Enter destination"
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Date of Travel</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <button
-          onClick={handleBooking}
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-        >
-          Fetch Available Options
-        </button>
-
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">Available Options</h3>
-          {travelOptions.map((option) => (
-            // onclick it should open a new page with the details of the selected option,
-            // to={`/details/${option.id}` navigate
-            <div key={option.id} className="border p-4 mb-2 rounded">
-              <p><strong>Source:</strong> {option.source}</p>
-              <p><strong>Destination:</strong> {option.destination}</p>
-              <p><strong>Date:</strong> {option.date}</p>
-              <p><strong>Price:</strong> ₹{option.price}</p>
-              <Link to={`/details/${option.id}`} className="text-blue-500 hover:underline">
-                View Details
-              </Link>
-            </div>       
-          ))}
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Available Options</h3>
+            {travelOptions.map((option) => (
+              <div key={option.id} className="border p-4 mb-2 rounded">
+                <p><strong>Source:</strong> {option.source}</p>
+                <p><strong>Destination:</strong> {option.destination}</p>
+                <p><strong>Date:</strong> {option.date}</p>
+                <p><strong>Price:</strong> ₹{option.price}</p>
+                <Link to={`/details/${option.id}`} className="text-blue-500 hover:underline">
+                  View Details
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default Home;
