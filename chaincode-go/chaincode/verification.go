@@ -35,49 +35,55 @@ import (
 // 	return "The provider verified successfully",nil
 // }
 
-func (s *SmartContract) VerifyProvider(ctx contractapi.TransactionContextInterface, providerID string) error {
-    // Get invoker's X.509 certificate
-    clientID, err := ctx.GetClientIdentity().GetID()
-    if err != nil {
-        return fmt.Errorf("failed to get client identity: %v", err)
-    }
-	if clientID == ""{
-		return fmt.Errorf("client ID doesn't exist")
-	}
-
-    // Verify invoker is from Regulatory Authority's MSP
-    err = ctx.GetClientIdentity().AssertAttributeValue("hf.Affiliation", "regulator")
-    if err != nil {
-        return fmt.Errorf("unauthorized verification attempt")
-    }
-
-    // Existing verification logic
+func (s *SmartContract) VerifyProvider(ctx contractapi.TransactionContextInterface, providerID, transportID string) (string,error) {
     providerJSON, _ := ctx.GetStub().GetState(providerID)
     var provider Provider
-    json.Unmarshal(providerJSON, &provider)
-    
-    provider.Verified = true
-    updatedProviderJSON, _ := json.Marshal(provider)
-    return ctx.GetStub().PutState(providerID, updatedProviderJSON)
+   json.Unmarshal(providerJSON, &provider)
+
+	found := false
+    for _, service := range provider.Services {
+        if service == transportID {
+            found = true
+            break
+        }
+    }
+	if(!found){
+		return "verification not successful",nil
+	} else{
+		return "verification successful",nil
+	}
 }
 
-func (s*SmartContract)VerifyTicket(ctx contractapi.TransactionContextInterface, ticketID string)(string, error){
+func (s*SmartContract)VerifyTicket(ctx contractapi.TransactionContextInterface,  ticketID,providerID, userID string)(string, error){
 	ticketJSON,_ := ctx.GetStub().GetState(ticketID)
 	if ticketJSON == nil{
 		return "ticket doesn't exist", fmt.Errorf("error")
 	}
 	var ticket TicketDetails
 	json.Unmarshal(ticketJSON,&ticket)
-	ticket.Status = "verified"
+	if(ticket.UserID == userID && ticket.ProviderID == providerID){
+		ticket.Status = "verified"
+	}else{
+		ticket.Status = "not verified"
+	}
 	updatedTicketJSON,_ := json.Marshal(ticket)
 	ctx.GetStub().PutState(ticketID,updatedTicketJSON)
 	return "Ticket verified successfully",nil
 }
 
-func (s*SmartContract)VerifyTransaction(ctx contractapi.TransactionContextInterface, paymentID string)(string, error){
+func (s*SmartContract)VerifyTransaction(ctx contractapi.TransactionContextInterface, paymentID, from, to string)(string, error){
 	paymentJSON,_ := ctx.GetStub().GetState(paymentID)
-	if paymentJSON == nil{
-		return "Error: payment with given ID doesn't exist", fmt.Errorf("error: payment with id= %s doesn't exist",paymentID)
+	
+	if(paymentJSON == nil){
+		return "Error: ", fmt.Errorf("error: payment detsils for the id: %s doesn't exist", paymentID)
 	}
-	return "Transaction verification successfull",nil
+
+	var payment PaymentDetail
+
+	_ = json.Unmarshal(paymentJSON, &payment)
+	
+	if(payment.From == from && payment.To == to){
+		return "Transaction verification successfull",nil
+	}
+	return "Error: Not Verified",fmt.Errorf("error: identities not mached")
 }

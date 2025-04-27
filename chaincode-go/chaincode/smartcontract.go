@@ -106,6 +106,33 @@ func (s *SmartContract) MakeUserAnonymous(ctx contractapi.TransactionContextInte
 	return ctx.GetStub().PutState(username, updatedUserJSON)
 }
 
+func (s *SmartContract) MakeUserPublic(ctx contractapi.TransactionContextInterface, email string) error {
+	var username = email
+
+	detailJSON, err := ctx.GetStub().GetState(username)
+	if err != nil {
+		return fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if detailJSON == nil {
+		return fmt.Errorf("details of %s do not exist", email)
+	}
+
+	var asset User
+	err = json.Unmarshal(detailJSON, &asset)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal the data: %v", err)
+	}
+
+	asset.IsAnonymous = false
+
+	updatedUserJSON, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user data: %v", err)
+	}
+
+	return ctx.GetStub().PutState(username, updatedUserJSON)
+}
+
 //book ticket code in ticket.go file
 
 /*

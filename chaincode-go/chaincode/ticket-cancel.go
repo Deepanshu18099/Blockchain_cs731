@@ -79,7 +79,7 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("error: the ticket is not present in the user's upcoming travels list")
 	}
 	
-	transport.Travellers[ticket.DateofTravel][ticket.SeatNumber-1] = "" /*removing the userID from travellers list*/
+	// transport.Travellers[ticket.DateofTravel][ticket.SeatNumber-1] = "" /*removing the userID from travellers list*/
 
 	//refund process
 	travelDate, _ := time.Parse("2006-01-02", ticket.DateofTravel)
@@ -126,7 +126,7 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 		}
 	}
 
-	transport.Travellers[date][seatNumber] = ""
+	// transport.Travellers[date][seatNumber] = ""
 
 	if !seatExists {
 		transport.SeatMap[date] = append(transport.SeatMap[date], seatNumber)
