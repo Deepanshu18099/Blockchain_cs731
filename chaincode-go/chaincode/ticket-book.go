@@ -11,6 +11,17 @@ import (
 )
 
 func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, userID, transportID, date string, seatNumber int32) (string, error) {
+	
+	bookingDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return "", fmt.Errorf("error: invalid date format, expected YYYY-MM-DD")
+	}
+
+	currentDate := time.Now()
+	if bookingDate.Before(currentDate.Truncate(24 * time.Hour)) {
+		return "", fmt.Errorf("error: cannot book ticket for a past date: %s", date)
+	}
+
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
 		return "", fmt.Errorf("error: failed to read user data: %v", err)
@@ -99,7 +110,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		JourneyDuration: transport.JourneyDuration,
 	}
 
-	user.UpcomingTravels = append(user.UpcomingTravels, ticketID)
+	user.Travels = append(user.Travels, ticketID)
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal updated user data: %v", err)

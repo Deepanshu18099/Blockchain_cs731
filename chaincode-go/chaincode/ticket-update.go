@@ -3,9 +3,11 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+
 	// "math"
 	"slices"
 	"time"
+
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
@@ -33,7 +35,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	if inputDate.Before(currDate) {
 		return fmt.Errorf("error: the date is gone")
 	}
-	
+
 	/*getting the details of the booked ticket*/
 	ticketJSON, err := ctx.GetStub().GetState(ticketID)
 	if err != nil {
@@ -47,7 +49,6 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		return fmt.Errorf("error occured while creating the ticket variable")
 	}
-
 
 	/*getting the details of the transport*/
 	transportID := ticket.TransportID
@@ -83,14 +84,14 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	previousDate := ticket.DateofTravel
 	previousTicketPrice := ticket.Price
 	newTicketPrice, _ := calculateDynamicPrice(ctx, transportID, date) /*as we have dynamic price so if the new date costs more than that is to be paid*/
-	penaltyPrice,_ := calculateDynamicPrice(ctx,transportID,previousDate)
+	penaltyPrice, _ := calculateDynamicPrice(ctx, transportID, previousDate)
 
-	penaltyPrice += newTicketPrice-previousTicketPrice /*extra to be paid according to the dynamic price*/
+	penaltyPrice += newTicketPrice - previousTicketPrice /*extra to be paid according to the dynamic price*/
 
 	if user.BankBalance < penaltyPrice {
 		return fmt.Errorf("error: the user doesn't have sufficient balance to pay the penaly charge for ticket update")
 	}
-	
+
 	/*removing the newSeat from the new travel date*/
 	var flag = true
 	for i, value := range transport.SeatMap[date] {
@@ -103,25 +104,24 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	if flag {
 		return fmt.Errorf("error: the seat is already booked")
 	}
-	
+
 	// user.BankBalance -= penaltyPrice /*penalty imposed*/
-	s.UserToProviderPayment(ctx,userID, transport.ProviderID,penaltyPrice)
+	s.UserToProviderPayment(ctx, userID, transport.ProviderID, penaltyPrice)
 
 	// previousSeat := ticket.SeatNumber
 	transport.SeatMap[previousDate] = append(transport.SeatMap[previousDate], ticket.SeatNumber) /*previously booked seat is now available for booking*/
 	slices.Sort(transport.SeatMap[previousDate])
-	
 
 	newTicketID := fmt.Sprintf("%s-%s-%d", ticket.TransportID, date, newSeat) /*new ticket ID id provided to the user*/
 
-	for i, value := range user.UpcomingTravels {
+	for i, value := range user.Travels {
 		if value == ticketID {
-			user.UpcomingTravels = append(user.UpcomingTravels[:i], user.UpcomingTravels[i+1:]...) 
+			user.Travels = append(user.Travels[:i], user.Travels[i+1:]...)
 			/*the previous ticket ID is deleted from the users upcoming travels*/
 			break
 		}
 	}
-	user.UpcomingTravels = append(user.UpcomingTravels, newTicketID)
+	user.Travels = append(user.Travels, newTicketID)
 	/*new ticket ID id now added to the user's upcoming travels list*/
 
 	updatedUserJSON, err := json.Marshal(user)

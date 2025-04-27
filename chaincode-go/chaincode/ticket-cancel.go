@@ -46,12 +46,25 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 	}
 
 	/*We can also check if the ticketID is present in the User's upcomingTravels list*/
-	departureTime, err := time.Parse("2006-01-02", ticket.DepartureTime)
+
+	/*
+	// departureTime, err := time.Parse("2006-01-02", ticket.DepartureTime)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to parse departure time: %s", err)
+	// }
+	// timeNow := time.Now()
+	// if timeNow.After(departureTime) {
+	// 	return fmt.Errorf("error: you cannot delete the ticket after the journey has started")
+	// }
+	*/
+
+	departureDateTimeStr := fmt.Sprintf("%s %s", ticket.DateofTravel, ticket.DepartureTime)
+	departureDateTime, err := time.Parse("2006-01-02 15:04", departureDateTimeStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse departure time: %s", err)
+		return fmt.Errorf("failed to parse combined departure date and time: %s", err)
 	}
 	timeNow := time.Now()
-	if timeNow.After(departureTime) {
+	if timeNow.After(departureDateTime) {
 		return fmt.Errorf("error: you cannot delete the ticket after the journey has started")
 	}
 
@@ -67,9 +80,9 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 	}
 	var flag = false
 
-	for i, tid := range user.UpcomingTravels {
+	for i, tid := range user.Travels {
 		if tid == ticketID {
-			user.UpcomingTravels = append(user.UpcomingTravels[:i], user.UpcomingTravels[i+1:]...)
+			user.Travels = append(user.Travels[:i], user.Travels[i+1:]...)
 			flag = true
 			break
 		}
