@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 
 const SignUp = () => {
-  const [name, setName] = useState("");
+  const [username, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("user");
@@ -44,10 +44,11 @@ const SignUp = () => {
     if (loading) {
       // inactive all inputs
       document.querySelectorAll("input, select").forEach((input) => {
-        input.setAttribute("disabled", "disabled");
+        input.setAttribute("disabled", "true");
       });
     } else {
       // active all inputs
+      console.log("loading false")
       document.querySelectorAll("input, select").forEach((input) => {
         input.removeAttribute("disabled");
       });
@@ -63,13 +64,13 @@ const SignUp = () => {
     e.preventDefault();
     // print something to test
     setLoading(true);
-    console.log("User Name:", name);
+    console.log("User Name:", username);
     const apiurl = process.env.REACT_APP_API_URL;
     try {
 
       // send a post request to the api
       const response = await axios.post(`${apiurl}ledger/createuser`, {
-        name,
+        username,
         email,
         phone,
         role,
@@ -78,7 +79,8 @@ const SignUp = () => {
 
 
       console.log("Response from API:", response.data);
-      setLoading(false);
+      console.log("loading now false");
+      // check if the response is success
 
       
       if (response.status !== 200) {
@@ -98,10 +100,11 @@ const SignUp = () => {
       setTimeout(() => {
         navigate("/signin");
       }, timeout * 1000);
-
+      
     } catch (error) {
       console.error("Error signing up:", error);
     }
+    setLoading(false);
   };
 
   return (
@@ -124,7 +127,7 @@ const SignUp = () => {
             <input
               type="text"
               id="name"
-              value={name}
+              value={username}
               onChange={(e) => setName(e.target.value)}
               required
               className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-500"

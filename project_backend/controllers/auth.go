@@ -13,9 +13,7 @@ import (
 	"deepanshu18099/blockchain_ledger_backend/chaincode"
 	"deepanshu18099/blockchain_ledger_backend/database"
 	"deepanshu18099/blockchain_ledger_backend/models"
-
-	// "encoding/json"
-	"fmt"
+	"deepanshu18099/blockchain_ledger_backend/utils"
 	"log"
 	"math/rand"
 	"net/http"
@@ -71,6 +69,7 @@ func CreateLedgerUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Println("User data received:", user)
 
 	// type *mongo.Client
 	db := database.ConnectDB()
@@ -105,14 +104,14 @@ func CreateLedgerUser(c *gin.Context) {
 	var user1 models.UserRequest23
 	user1.UserID = userID
 	user1.Email = user.Email
-	user1.Name = user.Name
+	user1.Username = user.Username
 	user1.Phone = user.Phone
 	user1.Role = user.Role
 
 	// args list of strings
 	argss := []string{}
 	argss = append(argss, user1.Email)
-	argss = append(argss, user1.Name)
+	argss = append(argss, user1.Username)
 	argss = append(argss, user1.Phone)
 	argss = append(argss, user1.UserID)
 	argss = append(argss, user1.Role)
@@ -129,7 +128,7 @@ func CreateLedgerUser(c *gin.Context) {
 	// register user id, password, and email in the database
 	_, err = collection.InsertOne(c, bson.M{
 		"email":    user.Email,
-		"username": user.Name,
+		"username": user.Username,
 		"phone":    user.Phone,
 		"role":     user.Role,
 		"password": user.Password,
@@ -187,30 +186,21 @@ func Login(c *gin.Context) {
 	}
 
 	// Decode the output
-	// outputDecoded := make(map[string]interface{})
-	log.Println("Signin function called", output)
-	// err = json.Unmarshal(output, &outputDecoded)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
-	// 	return
-	// }
-	// log.Println("Signin function called", outputDecoded)
-
-	// // check if the output has the updated balance
-	// updatedbalance, ok := outputDecoded["BankBalance"].(string)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated balance"})
-	// 	return
-	// }
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
 
 	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":   user.Email,
 		"role":    existingUser.Role,
 		"userid":  existingUser.UserID,
-		"balance": "1000",
+		"balance": result["BankBalance"],
 		"exp":     jwt.TimeFunc().Add(time.Hour * 24).Unix(), // Token expiration time
 	})
+
 
 	log.Println("Signin function called", existingUser.UserID)
 
@@ -224,66 +214,9 @@ func Login(c *gin.Context) {
 		"token":   tokenString,
 		"role":    existingUser.Role,
 		"userid":  existingUser.UserID,
-		"balance": "1000",
+		"balance": result["BankBalance"],
 	})
 
 }
 
-// checking authorization of a request
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
-			c.Abort()
-			return
-		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-// will be called by all the services to check if the token is valid and get the claims
-func Authcheck(c *gin.Context) (jwt.MapClaims, bool) {
-	tokenString := c.GetHeader("Authorization")
-	if tokenString == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
-		c.Abort()
-		return nil, false
-	}
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-	})
-
-	if err != nil || !token.Valid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		c.Abort()
-		return nil, false
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-		c.Abort()
-		return nil, false
-	}
-
-	return claims, true
-}

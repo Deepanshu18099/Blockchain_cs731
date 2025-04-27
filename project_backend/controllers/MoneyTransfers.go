@@ -2,25 +2,28 @@ package controllers
 
 import (
 	"deepanshu18099/blockchain_ledger_backend/chaincode"
+	"deepanshu18099/blockchain_ledger_backend/utils"
 	"log"
 	"net/http"
-	"github.com/google/uuid"
 
+	// int to str
+	"strconv"
+
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
 
-
-
 func AddMoneyToUser(c *gin.Context) {
 	/*
-	Input: Auth token, amount
-	This should update the balance of the user in ledger
-	Output: success message, updated balance of user
+		Input: Auth token, amount
+		This should update the balance of the user in ledger
+		Output: success message, updated balance of user
 	*/
 	// use authmiddleware to check if token is valid and get claims
 	// using the authcheck function
-	claims, ok := Authcheck(c)
+	claims, ok := utils.Authcheck(c)
+	log.Println("AddMoneyToUser function called", claims, ok)
 
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
@@ -33,12 +36,23 @@ func AddMoneyToUser(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	// get amount from the request body
+	type AddMoneyRequest struct {
+		Amount int `json:"amount"`
+	}
+	var Thisreq AddMoneyRequest
+	if err := c.ShouldBindJSON(&Thisreq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	argss := []string{}
 	argss = append(argss, email)
+	argss = append(argss, strconv.Itoa(Thisreq.Amount))
+
 	// now prepare to send the request to the chaincode
 	// Call the chaincode function to create the user on the ledger
-	args := chaincode.BuildChaincodeArgs(argss, "AddMoneyToUser")
+	args := chaincode.BuildChaincodeArgs(argss, "AddBalance")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -46,32 +60,30 @@ func AddMoneyToUser(c *gin.Context) {
 	}
 	log.Println("AddMoneyToUser function called", output)
 
-	// ................missing part.......................
+	// Decode the output
+	result := utils.Cleancode2(c, output)
 
-	// // check if the output has the updated balance
-	// updatedbalance, ok := outputdecoded["updatedbalance"].(string)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated balance"})
-	// 	return
-	// }
-	// now return the updated balance
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Money added to user",
-		"updatedbalance": "1100",
-		"transaction_id": "tx_10101",
+		"updatedbalance": result["BankBalance"],
+		"transaction_id": result["transaction_id"],
 	})
 
 }
 
-
 func GetTransports(c *gin.Context) {
 	/*
-	Input: Auth token, Source, Destination, Date, Mode of transport
-	will be called by user
-	Output: List of transports available
+		Input: Auth token, Source, Destination, Date, Mode of transport
+		will be called by user
+		Output: List of transports available
 	*/
-	
-	claims, ok := Authcheck(c)
+
+	claims, ok := utils.Authcheck(c)
 
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
@@ -93,10 +105,8 @@ func GetTransports(c *gin.Context) {
 		Date        string `json:"date"`
 		Mode        string `json:"mode"`
 	}
-	
 
 	var Thisreq GetTransportsRequest
-
 
 	if err := c.ShouldBindJSON(&Thisreq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -113,7 +123,6 @@ func GetTransports(c *gin.Context) {
 	// Decode the output
 	// .........................
 
-
 	// now return success, and transport details
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Transport details fetched successfully",
@@ -122,18 +131,16 @@ func GetTransports(c *gin.Context) {
 	})
 }
 
-
-
 func BookTicket(c *gin.Context) {
 	/*
-	Input: Auth token, transportID, date, seatNumber
-	This should update the ticket of both the users in ledger
-	Also update the Balance of user and provider
-	Output: success message, updated balance of user
+		Input: Auth token, transportID, date, seatNumber
+		This should update the ticket of both the users in ledger
+		Also update the Balance of user and provider
+		Output: success message, updated balance of user
 	*/
 	// use authmiddleware to check if token is valid and get claims
 	// using the authcheck function
-	claims, ok := Authcheck(c)
+	claims, ok := utils.Authcheck(c)
 	// get transportID, date from the request body
 	// var transportID string
 	// var date string
@@ -151,7 +158,6 @@ func BookTicket(c *gin.Context) {
 		return
 	}
 
-	
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
@@ -176,28 +182,23 @@ func BookTicket(c *gin.Context) {
 	// Decode the output
 	// ........................
 
-
-
 	// now return success, and updated balance of the user
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Ticket booked successfully",
 		"updatedbalance": "1100",
 		"transaction_id": "tx_10101",
 	})
-	
+
 }
-
-
-
 
 func GetUserTickets(c *gin.Context) {
 	/*
-	Input: Auth token
-	Output: List of tickets booked by the user
+		Input: Auth token
+		Output: List of tickets booked by the user
 	*/
 	// use authmiddleware to check if token is valid and get claims
 	// using the authcheck function
-	claims, ok := Authcheck(c)
+	claims, ok := utils.Authcheck(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
@@ -220,7 +221,6 @@ func GetUserTickets(c *gin.Context) {
 	// Decode the output
 	// ...............................
 
-
 	// now return success, and transport details
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "User tickets fetched successfully",
@@ -229,16 +229,14 @@ func GetUserTickets(c *gin.Context) {
 	})
 }
 
-
-
 func AddTransport(c *gin.Context) {
 	/*
-	Input: Auth token, Source, Destination, Date, Price, ticketcount
-	To create a transport on the ledger by provider
-	Output: success message, Transport ID
+		Input: Auth token, Source, Destination, Date, Price, ticketcount
+		To create a transport on the ledger by provider
+		Output: success message, Transport ID
 	*/
 	// using the authcheck function
-	claims, ok := Authcheck(c)
+	claims, ok := utils.Authcheck(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
@@ -261,7 +259,7 @@ func AddTransport(c *gin.Context) {
 		Destination string `json:"destination"`
 		Date        string `json:"date"`
 		Price       int    `json:"price"`
-		TicketCount  int    `json:"ticketcount"`
+		TicketCount int    `json:"ticketcount"`
 	}
 	var Thisreq AddTransportRequest
 	if err := c.ShouldBindJSON(&Thisreq); err != nil {
@@ -274,12 +272,10 @@ func AddTransport(c *gin.Context) {
 	Price := Thisreq.Price
 	ticketcount := Thisreq.TicketCount
 
-	
 	// generate a transportID unique for the transport
 	var transportID string
 	// using the uuid package
 	transportID = uuid.New().String()
-
 
 	// now prepare to send the request to the chaincode with the transportID
 	args := chaincode.BuildChaincodeArgs([]string{transportID, email, Source, Destination, Date, string(Price), string(ticketcount)}, "AddTransport")
@@ -292,25 +288,22 @@ func AddTransport(c *gin.Context) {
 	// Decode the output
 	// ...............................
 
-
 	// now return success, and transportID
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Transport added successfully",
-		"transport_id": transportID,
+		"message":        "Transport added successfully",
+		"transport_id":   transportID,
 		"transaction_id": "tx_10101",
 	})
 }
-	
-
 
 func GetTransportStatus(c *gin.Context) {
 	/*
-	Input: Auth token, transportID
-	Will return the current status of the transport, vacancy, and Net Income of each date
-	Output: success message, transport details
+		Input: Auth token, transportID
+		Will return the current status of the transport, vacancy, and Net Income of each date
+		Output: success message, transport details
 	*/
 
-	claims, ok := Authcheck(c)
+	claims, ok := utils.Authcheck(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
@@ -343,9 +336,9 @@ func GetTransportStatus(c *gin.Context) {
 
 	// now return success, and transport details
 	c.JSON(http.StatusOK, gin.H{
-		"message":        "Transport details fetched successfully",
-		"Income":         "10000",
-		"vacancy":        "10",
+		"message": "Transport details fetched successfully",
+		"Income":  "10000",
+		"vacancy": "10",
 	})
 
 }

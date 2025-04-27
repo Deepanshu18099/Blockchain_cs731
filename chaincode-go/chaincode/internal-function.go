@@ -72,37 +72,53 @@ func calculateDynamicPrice(ctx contractapi.TransactionContextInterface, transpor
 	return math.Round(currentPrice*100) / 100, nil
 }
 
-func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) error {
+func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) ([]byte, error) {
 	var username = email
 	exists, err := s.detailExists(ctx, username)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !exists {
-		return fmt.Errorf("the User %s does not exist", email)
+		return nil, fmt.Errorf("the user %s does not exist", email)
 	}
 
 	detailJSON, err := ctx.GetStub().GetState(username)
 
 	if err != nil {
-		return fmt.Errorf("failed to read from worls state: %v", err)
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
 	}
 	if detailJSON == nil {
-		return fmt.Errorf("details of %s does not exist", email)
+		return nil, fmt.Errorf("details of %s do not exist", email)
 	}
 	var asset User
 	err = json.Unmarshal(detailJSON, &asset)
 	if err != nil {
-		return fmt.Errorf("failed to marshal the data")
+		return nil, fmt.Errorf("failed to unmarshal the data: %v", err)
 	}
 
 	asset.BankBalance += amount
 
 	updatedUserJSON, err := json.Marshal(asset)
 	if err != nil {
-		return fmt.Errorf("failed to marshal updated user data: %v", err)
+		return nil, fmt.Errorf("failed to marshal updated user data: %v", err)
 	}
-	return ctx.GetStub().PutState(username, updatedUserJSON)
+
+	err = ctx.GetStub().PutState(username, updatedUserJSON)
+
+	// getting the transaction ID and adding it to returned JSON
+	txID := ctx.GetStub().GetTxID()
+	updatedUserJSON, err = json.Marshal(struct {
+		User
+		TransactionID string `json:"transaction_id"`
+	}{
+		User:          asset,
+		TransactionID: txID,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to put updated user data: %v", err)
+	}
+	return updatedUserJSON, nil
 }
 
 func (s *SmartContract) GetBalance(ctx contractapi.TransactionContextInterface, email string) (float64, error) {

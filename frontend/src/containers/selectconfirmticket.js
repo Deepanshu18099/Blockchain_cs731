@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from './Authcontext.js';
+import axios from 'axios';
 
 const sampleData = [
   { id: 1, transportName: "Indigo Flight 6E-205", source: "Delhi", destination: "Mumbai", date: "2025-05-10", time: "10:00 AM", price: 5000, availableSeats: [1, 2, 3, 4, 5] },
@@ -29,15 +30,42 @@ const ConfirmTicket = () => {
     setTransportDetails(transport);
   }, [transportid]);
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (!selectedSeat) {
       alert("Please select a seat before confirming!");
       return;
     }
-    alert(`Booking confirmed for ${transportDetails.transportName} (Seat: ${selectedSeat})`);
-    navigate("/");  // Redirect back to home or show success page
+  
+    console.log("Booking confirmed for seat:", selectedSeat);
+  
+    const apiurl = process.env.REACT_APP_API_URL;
+    const token = localStorage.getItem("token");  // This is your JWT token
+  
+    try {
+      const response = await axios.post(
+        `${apiurl}ledger/booking`,
+        {
+          userId,
+          transportid,
+          selectedSeat,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,  // Attach token like this
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      console.log("Booking successful:", response.data);
+  
+      // Navigate to home or a success page after booking
+      navigate("/");
+    } catch (error) {
+      console.error("Booking failed:", error);
+      alert("Booking failed. Please try again!");
+    }
   };
-
   if (!transportDetails) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   }

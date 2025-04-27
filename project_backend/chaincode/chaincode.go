@@ -9,7 +9,6 @@ import (
 	"os/exec"
 )
 
-
 // now making it generalised with func name and args seperated by comma
 func BuildChaincodeArgs(args []string, funcname string) []string {
 	// all args had to be split into strings in loop seperated by comma in ccinput args
@@ -24,9 +23,6 @@ func BuildChaincodeArgs(args []string, funcname string) []string {
 		}
 	}
 	ccInput += `]}`
-
-
-
 
 	OrdererAddress := os.Getenv("OrdererAddress")
 	OrdererTLSHostname := os.Getenv("OrdererTLSHostname")
@@ -67,7 +63,7 @@ func RunPeerCommand(args []string) ([]byte, error) {
 	// log.Printf("Output: %s\n", output)
 
 	if err != nil {
-		log.Printf("Error executing command: %s\n", err)
+		log.Printf("Error executing command: %s\n", output)
 		return nil, err
 	}
 	log.Printf("Command output: %s\n", output)
