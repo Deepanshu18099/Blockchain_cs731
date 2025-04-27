@@ -15,7 +15,7 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-func (s *SmartContract) UserToProviderPayment(ctx contractapi.TransactionContextInterface, userID, providerID string, amount float64) error {
+func UserToProviderPayment(ctx contractapi.TransactionContextInterface, userID, providerID string, amount float64) error {
 
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
@@ -28,6 +28,10 @@ func (s *SmartContract) UserToProviderPayment(ctx contractapi.TransactionContext
 	err = json.Unmarshal(userJSON, &user)
 	if err != nil {
 		return fmt.Errorf("error: failed to unmarhsal user %s", userID)
+	}
+
+	if user.BankBalance < amount {
+		return fmt.Errorf("error: insufficient balance in the user's account")
 	}
 
 	providerJSON, err := ctx.GetStub().GetState(providerID)
@@ -47,7 +51,7 @@ func (s *SmartContract) UserToProviderPayment(ctx contractapi.TransactionContext
 	user.BankBalance -= amount
 	provider.BankBalance += amount
 
-	paymentID := "payment-" + time.Now().Format("2006-01-02")
+	paymentID := "payment-" + time.Now().Format("2006-01-02 15:04:05")
 
 	payment := PaymentDetail{
 		PaymentID:   paymentID,
@@ -64,15 +68,16 @@ func (s *SmartContract) UserToProviderPayment(ctx contractapi.TransactionContext
 	provider.PaymentID = append(provider.PaymentID, paymentID)
 
 	updatedUserJSON, _ := json.Marshal(user)
-	ctx.GetStub().PutState(userID, updatedUserJSON)
+	err = ctx.GetStub().PutState(userID, updatedUserJSON)
+	if err != nil {
+		return fmt.Errorf("error: %s", err)
+	}
 
 	updatedProviderJSON, _ := json.Marshal(provider)
-	ctx.GetStub().PutState(providerID, updatedProviderJSON)
-
-	return nil
+	return ctx.GetStub().PutState(providerID, updatedProviderJSON)
 }
 
-func (s *SmartContract) ProviderToUserPayment(ctx contractapi.TransactionContextInterface, providerID, userID string, amount float64) error {
+func ProviderToUserPayment(ctx contractapi.TransactionContextInterface, providerID, userID string, amount float64) error {
 
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
@@ -99,6 +104,10 @@ func (s *SmartContract) ProviderToUserPayment(ctx contractapi.TransactionContext
 	err = json.Unmarshal(providerJSON, &provider)
 	if err != nil {
 		return fmt.Errorf("error: failed to unmarshal provider %s", providerID)
+	}
+
+	if(provider.BankBalance<amount){
+		return fmt.Errorf("error: insufficient balance ")
 	}
 
 	user.BankBalance += amount
@@ -128,7 +137,4 @@ func (s *SmartContract) ProviderToUserPayment(ctx contractapi.TransactionContext
 
 	return nil
 }
-
-
-
 

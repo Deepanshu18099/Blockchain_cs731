@@ -106,7 +106,45 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	}
 
 	// user.BankBalance -= penaltyPrice /*penalty imposed*/
-	s.UserToProviderPayment(ctx, userID, transport.ProviderID, penaltyPrice)
+	// UserToProviderPayment(ctx, userID, transport.ProviderID, penaltyPrice)
+
+	////////////////////////////////////////////////////
+
+	providerJSON, err := ctx.GetStub().GetState(transport.ProviderID)
+	if err != nil {
+		return fmt.Errorf("error %s occured", err)
+	}
+	if providerJSON == nil {
+		return fmt.Errorf("error: provider %s doesn't exist", transport.ProviderID)
+	}
+	var provider Provider
+	err = json.Unmarshal(providerJSON, &provider)
+	if err != nil {
+		return fmt.Errorf("error: failed to unmarshal provider %s", transport.ProviderID)
+	}
+
+	user.BankBalance -= penaltyPrice
+	provider.BankBalance += penaltyPrice
+
+	paymentID := "payment-" + time.Now().Format("2006-01-02 15:04:05")
+
+	payment := PaymentDetail{
+		PaymentID:   paymentID,
+		From:        userID,
+		To:          transport.ProviderID,
+		Amount:      penaltyPrice,
+		PaymentTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	paymentJSON, _ := json.Marshal(payment)
+	ctx.GetStub().PutState(paymentID, paymentJSON)
+
+	user.PaymentID = append(user.PaymentID, paymentID)
+	provider.PaymentID = append(provider.PaymentID, paymentID)
+
+	updatedProviderJSON, _ := json.Marshal(provider)
+	ctx.GetStub().PutState(transport.ProviderID, updatedProviderJSON)
+	////////////////////////////////////////
 
 	// previousSeat := ticket.SeatNumber
 	transport.SeatMap[previousDate] = append(transport.SeatMap[previousDate], ticket.SeatNumber) /*previously booked seat is now available for booking*/
@@ -153,3 +191,4 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	}
 	return ctx.GetStub().PutState(newTicketID, updatedTicketJSON)
 }
+

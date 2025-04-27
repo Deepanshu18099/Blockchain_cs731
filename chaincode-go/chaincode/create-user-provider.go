@@ -31,8 +31,7 @@ func (s *SmartContract) CreateEntity(ctx contractapi.TransactionContextInterface
 			Name: name,
 			Email: email,
 			Phone: phone,
-			Travels: make([]string,0),
-			BankBalance: 0.0,
+			Travels: make([]string, 0),
 			IsAnonymous: false,
 			PaymentID: make([]string, 0),
 		}

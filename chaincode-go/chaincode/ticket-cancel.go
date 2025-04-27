@@ -45,18 +45,6 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("error: user %s is not the owner of ticket %s", userID, ticketID)
 	}
 
-	/*We can also check if the ticketID is present in the User's upcomingTravels list*/
-
-	/*
-	// departureTime, err := time.Parse("2006-01-02", ticket.DepartureTime)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to parse departure time: %s", err)
-	// }
-	// timeNow := time.Now()
-	// if timeNow.After(departureTime) {
-	// 	return fmt.Errorf("error: you cannot delete the ticket after the journey has started")
-	// }
-	*/
 
 	departureDateTimeStr := fmt.Sprintf("%s %s", ticket.DateofTravel, ticket.DepartureTime)
 	departureDateTime, err := time.Parse("2006-01-02 15:04", departureDateTimeStr)
@@ -116,7 +104,44 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 
 	// user.BankBalance += ticket.Price*(1-penaltyRate)
 	refundPrice := ticket.Price*(1-penaltyRate)
-	s.ProviderToUserPayment(ctx,transport.ProviderID,userID,refundPrice)
+
+	// ProviderToUserPayment(ctx,transport.ProviderID,userID,refundPrice)
+	///////////////////////////////////////////////
+	
+	providerJSON, err := ctx.GetStub().GetState(transport.ProviderID)
+	if err != nil {
+		return fmt.Errorf("error %s occured", err)
+	}
+	if providerJSON == nil {
+		return fmt.Errorf("error: provider %s doesn't exist", transport.ProviderID)
+	}
+	var provider Provider
+	err = json.Unmarshal(providerJSON, &provider)
+	if err != nil {
+		return fmt.Errorf("error: failed to unmarshal provider %s", transport.ProviderID)
+	}
+
+	user.BankBalance += refundPrice
+	provider.BankBalance -= refundPrice
+
+	paymentID := "payment-" + time.Now().Format("2006-01-02")
+	payment := PaymentDetail{
+		PaymentID:   paymentID,
+		From:        userID,
+		To:          transport.ProviderID,
+		Amount:      refundPrice,
+		PaymentTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	paymentJSON, _ := json.Marshal(payment)
+	ctx.GetStub().PutState(paymentID, paymentJSON)
+
+	user.PaymentID = append(user.PaymentID, paymentID)
+	provider.PaymentID = append(provider.PaymentID, paymentID)
+
+	updatedProviderJSON, _ := json.Marshal(provider)
+	ctx.GetStub().PutState(transport.ProviderID, updatedProviderJSON)
+
+	///////////////////////////////////////////////////////////////////////
 
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil {
@@ -158,3 +183,4 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 
 	return ctx.GetStub().DelState(ticketID)
 }
+
