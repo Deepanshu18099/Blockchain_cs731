@@ -24,13 +24,13 @@ import (
 // 	return user,nil
 // }
 
-func (s *SmartContract) GetDetailUser(ctx contractapi.TransactionContextInterface, userID string) (User, error) {
+func (s *SmartContract) GetDetailUser(ctx contractapi.TransactionContextInterface, userID string) User {
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
-		return User{}, fmt.Errorf("error occured while fetching the users details %s", err)
+		return User{}
 	}
 	if userJSON == nil {
-		return User{}, fmt.Errorf("the user %s does not exist", userID)
+		return User{}
 	}
 	var user User
 	_ = json.Unmarshal(userJSON, &user)
@@ -51,11 +51,10 @@ func (s *SmartContract) GetDetailUser(ctx contractapi.TransactionContextInterfac
 		Email: "",
 		Name:  "",
 		// Plus other safe fields if you want
-		PastTravels:     user.PastTravels,
-		UpcomingTravels: user.UpcomingTravels,
+		Travels: user.Travels,
 		BankBalance: 	 user.BankBalance,
 		PaymentID:       user.PaymentID,
-	}, nil
+	}
 }
 
 func (s *SmartContract) GetDetailProvider(ctx contractapi.TransactionContextInterface, providerID string) (Provider, error) {

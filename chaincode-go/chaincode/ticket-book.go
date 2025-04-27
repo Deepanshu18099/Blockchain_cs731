@@ -110,7 +110,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		JourneyDuration: transport.JourneyDuration,
 	}
 
-	user.UpcomingTravels = append(user.UpcomingTravels, ticketID)
+	user.Travels = append(user.Travels, ticketID)
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal updated user data: %v", err)

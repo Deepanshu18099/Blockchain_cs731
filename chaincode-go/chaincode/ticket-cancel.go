@@ -80,9 +80,9 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 	}
 	var flag = false
 
-	for i, tid := range user.UpcomingTravels {
+	for i, tid := range user.Travels {
 		if tid == ticketID {
-			user.UpcomingTravels = append(user.UpcomingTravels[:i], user.UpcomingTravels[i+1:]...)
+			user.Travels = append(user.Travels[:i], user.Travels[i+1:]...)
 			flag = true
 			break
 		}
