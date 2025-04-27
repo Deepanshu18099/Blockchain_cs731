@@ -3,6 +3,7 @@ import './App.css';
 import Signup from './containers/Singup.js';
 import SignIn from './containers/Signin.js';
 import Home from './containers/Home.js';
+import Confirmticket from './containers/selectconfirmticket.js';
 import { Route, Routes } from 'react-router-dom';
 
 function App() {
@@ -39,6 +40,8 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/details/:transportid" element={<Confirmticket />} />
+      {/* get path for /detail/id api, send id as a argument which will be used*/}
       {/* Add more routes as needed */}
     </Routes>
     

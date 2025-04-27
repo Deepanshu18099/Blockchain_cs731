@@ -112,12 +112,17 @@ function Home() {
         <div className="mt-6">
           <h3 className="text-lg font-semibold mb-2">Available Options</h3>
           {travelOptions.map((option) => (
-            <div key={option.id} className="border p-3 rounded mb-2">
-              <p><strong>From:</strong> {option.source}</p>
-              <p><strong>To:</strong> {option.destination}</p>
-              <p><strong>Price:</strong> ₹{option.price}</p>
+            // onclick it should open a new page with the details of the selected option,
+            // to={`/details/${option.id}` navigate
+            <div key={option.id} className="border p-4 mb-2 rounded">
+              <p><strong>Source:</strong> {option.source}</p>
+              <p><strong>Destination:</strong> {option.destination}</p>
               <p><strong>Date:</strong> {option.date}</p>
-            </div>
+              <p><strong>Price:</strong> ₹{option.price}</p>
+              <Link to={`/details/${option.id}`} className="text-blue-500 hover:underline">
+                View Details
+              </Link>
+            </div>       
           ))}
         </div>
       </div>
