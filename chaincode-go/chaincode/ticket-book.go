@@ -67,7 +67,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		}
 	}
 
-	transport.Travellers[date][seatNumber-1] = userID /*maintaining the userID of the travellers*/
+	// transport.Travellers[date][seatNumber-1] = userID /*maintaining the userID of the travellers*/
 
 	if flag {
 		return "error: ticket can not be booked", fmt.Errorf("the seat is already booked")
@@ -82,7 +82,8 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 
 	ticket := TicketDetails{
 		TicketID:        ticketID,
-		UserID:      userID,
+		UserID:          userID,
+		ProviderID:      providerID,
 		DateofTravel:    date,
 		Source:          transport.Source,
 		Destination:     transport.Destination,

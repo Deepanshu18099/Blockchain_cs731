@@ -107,7 +107,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	// user.BankBalance -= penaltyPrice /*penalty imposed*/
 	s.UserToProviderPayment(ctx,userID, transport.ProviderID,penaltyPrice)
 
-	previousSeat := ticket.SeatNumber
+	// previousSeat := ticket.SeatNumber
 	transport.SeatMap[previousDate] = append(transport.SeatMap[previousDate], ticket.SeatNumber) /*previously booked seat is now available for booking*/
 	slices.Sort(transport.SeatMap[previousDate])
 	
@@ -134,7 +134,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("error while updating the user details in the hyperledger")
 	}
 	//new seat number updated in the record successfully
-	transport.Travellers[previousDate][previousSeat]="" /*removing the userID from previously booked seat*/
+	// transport.Travellers[previousDate][previousSeat]="" /*removing the userID from previously booked seat*/
 
 	ticket.DateofTravel = date
 	ticket.SeatNumber = newSeat

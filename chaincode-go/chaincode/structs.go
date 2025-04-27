@@ -2,7 +2,8 @@ package chaincode
 
 type TicketDetails struct {
 	TicketID               string        `json:"TicketID"`
-	UserID                 string        `json:"OwnerEmail"`
+	UserID                 string        `json:"Traveller"`
+	ProviderID 			   string         `json:"Provider"`
 	DateofTravel           string        `json:"DateofTravel"`
 	Source                 string        `json:"Source"`
 	Destination            string        `json:"Destination"`
@@ -34,7 +35,7 @@ type TransportDetails struct {
 	JourneyDuration        string                     `json:"JourneyDuration"`
 	DateofTravel           []string                   `json:"DateofTravel"`
 	SeatMap                map[string][]int32         `json:"AvailableSeats"`
-	Travellers             map[string][]string        `json:"Travellers"`
+	// Travellers             map[string][]string        `json:"Travellers"`
 	ProviderID             string                     `json:"ProviderID"`
 }
 
@@ -54,7 +55,6 @@ type Provider struct {
 	Email            string             `json:"Email"`
 	Phone            string             `json:"Phone"`
 	Services         []string           `json:"Services"` // list of transportIDs
-	Verified         bool               `json:"Verified"`
 	BankBalance      float64            `json:"BankBalance"`
 	PaymentID        []string            `json:"PaymentID"`
 }
