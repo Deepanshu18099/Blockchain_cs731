@@ -14,6 +14,7 @@ import (
 	"deepanshu18099/blockchain_ledger_backend/database"
 	"deepanshu18099/blockchain_ledger_backend/models"
 
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -28,7 +29,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"regexp"
+	
 )
+func extractJSON(output []byte) []byte {
+	// use regular expression to extract JSON part
+	re := regexp.MustCompile(`\{.*\}`)
+	match := re.Find(output)
+	return match
+}
 
 // Sample outputs for testing
 var sample_outs = map[string]interface{}{
@@ -106,8 +115,17 @@ func CreateLedgerUser(c *gin.Context) {
 	user1.Phone = user.Phone
 	user1.Role = user.Role
 
+	// args list of strings
+	argss := []string{}
+	argss = append(argss, user1.Email)
+	argss = append(argss, user1.Name)
+	argss = append(argss, user1.Phone)
+	argss = append(argss, user1.UserID)
+	argss = append(argss, user1.Role)
+
+	// now prepare to send the request to the chaincode
 	// Call the chaincode function to create the user on the ledger
-	args := chaincode.BuildChaincodeArgs(user1)
+	args := chaincode.BuildChaincodeArgs(argss, "CreateEntity")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -163,12 +181,55 @@ func Login(c *gin.Context) {
 
 	log.Println("Signin function called")
 
+	// now getting user details from the chaincode
+	argss := []string{}
+	argss = append(argss, existingUser.Email)
+	// now prepare to send the request to the chaincode
+	args := chaincode.BuildChaincodeArgs(argss, "GetDetailUser")
+	output, err := chaincode.RunPeerCommand(args)
+
+
+
+
+	log.Println("output from chaincode:", string(output))
+	cleanOutput := extractJSON(output)
+	log.Println("clean output from chaincode:", string(cleanOutput))
+	if cleanOutput == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid output from chaincode"})
+		return
+	}
+
+
+	
+	// Now safely decode
+	var outputDecoded map[string]interface{}
+	err = json.Unmarshal(cleanOutput, &outputDecoded)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to decode JSON output"})
+		return
+	}
+
+	log.Println("Output decoded:", outputDecoded)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+
+	// check if the output has the updated balance
+	updatedbalance, ok := outputDecoded["BankBalance"].(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated balance"})
+		return
+	}
+
 	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":  user.Email,
-		"role":   existingUser.Role,
-		"userid": existingUser.UserID,
-		"exp":    jwt.TimeFunc().Add(time.Hour * 24).Unix(), // Token expiration time
+		"email":   user.Email,
+		"role":    existingUser.Role,
+		"userid":  existingUser.UserID,
+		"balance": updatedbalance,
+		"exp":     jwt.TimeFunc().Add(time.Hour * 24).Unix(), // Token expiration time
 	})
 
 	log.Println("Signin function called", existingUser.UserID)
@@ -180,9 +241,10 @@ func Login(c *gin.Context) {
 	}
 	// Return the token to the client
 	c.JSON(http.StatusOK, gin.H{
-		"token":  tokenString,
-		"role":   existingUser.Role,
-		"userid": existingUser.UserID,
+		"token":   tokenString,
+		"role":    existingUser.Role,
+		"userid":  existingUser.UserID,
+		"balance": updatedbalance,
 	})
 
 }
@@ -213,3 +275,80 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// will be called by all the services to check if the token is valid and get the claims
+func Authcheck(c *gin.Context) (jwt.MapClaims, bool) {
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
+		c.Abort()
+		return nil, false
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		c.Abort()
+		return nil, false
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return nil, false
+	}
+
+	return claims, true
+}
+
+// func AddMoneyToUser(c *gin.Context) {
+// 	// use authmiddleware to check if token is valid and get claims
+// 	// using the authcheck function
+// 	claims, ok := Authcheck(c)
+
+// 	if !ok {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+// 		c.Abort()
+// 		return
+// 	}
+// 	email, ok := claims["email"].(string)
+// 	if !ok {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+// 		c.Abort()
+// 		return
+// 	}
+
+// 	argss := []string{}
+// 	argss = append(argss, email)
+// 	// now prepare to send the request to the chaincode
+// 	// Call the chaincode function to create the user on the ledger
+// 	args := chaincode.BuildChaincodeArgs(argss, "AddMoneyToUser")
+// 	output, err := chaincode.RunPeerCommand(args)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	// ................missing part.......................
+
+// 	// check if the output has the updated balance
+// 	updatedbalance, ok := outputdecoded["updatedbalance"].(string)
+// 	if !ok {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get updated balance"})
+// 		return
+// 	}
+// 	// now return the updated balance
+// 	c.JSON(http.StatusOK, gin.H{
+// 		"message":        "Money added to user",
+// 		"updatedbalance": updatedbalance,
+// 		"transaction_id": outputdecoded["transaction_id"],
+// 	})
+
+// }
