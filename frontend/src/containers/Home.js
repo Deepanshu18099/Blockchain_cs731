@@ -17,6 +17,7 @@ function Home() {
           <div>
             <p className="mb-4">User ID: {userId}</p>
             <p className="mb-4">Role: {role}</p>
+            {/* showing balance and  */}
           </div>
         ) : (
           <div>
