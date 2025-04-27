@@ -64,7 +64,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 
 	/*checking if the user has sufficient balance to book the ticket*/
 	if user.BankBalance < currentPrice {
-		return "", fmt.Errorf("error insufficient balance! required: %.2f, available: %.2f", currentPrice, user.BankBalance)
+		return "Fail", fmt.Errorf("error insufficient balance! required: %.2f, available: %.2f", currentPrice, user.BankBalance)
 	}
 
 	var flag = true
@@ -135,7 +135,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		TransportID:     transportID, // Using TicketID as PNR
 		SeatNumber:      seatNumber,
 		Price:           currentPrice,
-		DateofBooking:   time.Now().Format("2006-01-02 15:04:05"), // Use actual timestamp in real implementation
+		DateofBooking:   time.Now().Format("2006-01-02"), // Use actual timestamp in real implementation
 		PaymentStatus:   true,                                     // Payment is verified
 		IsActive:        true,
 		DepartureTime:   transport.DepartureTime,
@@ -144,6 +144,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 	}
 
 	user.Travels = append(user.Travels, ticketID)
+
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal updated user data: %v", err)
@@ -153,24 +154,18 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		return "", fmt.Errorf("failed to update user state: %v", err)
 	}
 
+	// updatedUserJSON,_ := json.Marshal(user)
+	// ctx.GetStub().PutState(userID, updatedUserJSON)
+
 	updatedTransportJSON, err := json.Marshal(transport)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal updated transport data: %v", err)
 	}
-	err = ctx.GetStub().PutState(transportID, updatedTransportJSON)
+	ctx.GetStub().PutState(transportID, updatedTransportJSON)
 
-	if err != nil {
-		return "", fmt.Errorf("failed to update transport state: %v", err)
-	}
-
-	ticketJSON, err := json.Marshal(ticket)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal ticket data: %v", err)
-	}
-	err = ctx.GetStub().PutState(ticketID, ticketJSON)
-	if err != nil {
-		return "", fmt.Errorf("failed to save ticket: %v", err)
-	}
+	ticketJSON,_ := json.Marshal(ticket)
+	ctx.GetStub().PutState(ticketID, ticketJSON)
+	
 	return fmt.Sprintf("ticket booked successfully! Ticket ID: %s", ticketID), nil
 }
 

@@ -176,7 +176,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 
 	ticket.DateofTravel = date
 	ticket.SeatNumber = newSeat
-	ticket.DateofUpdate = time.Now().Format("2006-01-02 15:04:05")
+	ticket.DateofUpdate = time.Now().Format("2006-01-02")
 
 	ticket.TicketID = newTicketID
 

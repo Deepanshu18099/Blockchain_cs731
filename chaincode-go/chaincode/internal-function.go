@@ -14,6 +14,10 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
+type SmartContract struct {
+	contractapi.Contract
+}
+
 func (t *SmartContract) detailExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	detailJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
@@ -68,3 +72,105 @@ func calculateDynamicPrice(ctx contractapi.TransactionContextInterface, transpor
 	return math.Round(currentPrice*100) / 100, nil
 }
 
+func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) error {
+	var username = email
+	exists, err := s.detailExists(ctx, username)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("the User %s does not exist", email)
+	}
+
+	detailJSON, err := ctx.GetStub().GetState(username)
+
+	if err != nil {
+		return fmt.Errorf("failed to read from worls state: %v", err)
+	}
+	if detailJSON == nil {
+		return fmt.Errorf("details of %s does not exist", email)
+	}
+	var asset User
+	err = json.Unmarshal(detailJSON, &asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal the data")
+	}
+
+	asset.BankBalance += amount
+
+	updatedUserJSON, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user data: %v", err)
+	}
+	return ctx.GetStub().PutState(username, updatedUserJSON)
+}
+
+func (s *SmartContract) GetBalance(ctx contractapi.TransactionContextInterface, email string) (float64, error) {
+	var username = email
+	detailJSON, err := ctx.GetStub().GetState(username)
+	if err != nil {
+		return 0.0, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if detailJSON == nil {
+		return 0.0, fmt.Errorf("details of %s do not exist", email)
+	}
+
+	var user User
+	err = json.Unmarshal(detailJSON, &user)
+	if err != nil {
+		return 0.0, fmt.Errorf("failed to unmarshal user data: %v", err)
+	}
+	return user.BankBalance, nil
+}
+
+func (s *SmartContract) MakeUserAnonymous(ctx contractapi.TransactionContextInterface, email string) error {
+	var username = email
+
+	detailJSON, err := ctx.GetStub().GetState(username)
+
+	if err != nil {
+		return fmt.Errorf("failed to read from worls state: %v", err)
+	}
+	if detailJSON == nil {
+		return fmt.Errorf("details of %s does not exist", email)
+	}
+
+	var asset User
+	err = json.Unmarshal(detailJSON, &asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal the data")
+	}
+	asset.IsAnonymous = true
+	updatedUserJSON, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user data: %v", err)
+	}
+	return ctx.GetStub().PutState(username, updatedUserJSON)
+}
+
+func (s *SmartContract) MakeUserPublic(ctx contractapi.TransactionContextInterface, email string) error {
+	var username = email
+
+	detailJSON, err := ctx.GetStub().GetState(username)
+	if err != nil {
+		return fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if detailJSON == nil {
+		return fmt.Errorf("details of %s do not exist", email)
+	}
+
+	var asset User
+	err = json.Unmarshal(detailJSON, &asset)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal the data: %v", err)
+	}
+
+	asset.IsAnonymous = false
+
+	updatedUserJSON, err := json.Marshal(asset)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user data: %v", err)
+	}
+
+	return ctx.GetStub().PutState(username, updatedUserJSON)
+}

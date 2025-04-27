@@ -47,7 +47,6 @@ type User struct {
 	// UpcomingTravels []string       `json:"UpcomingTravels"`  //list of ticketIDs
 	BankBalance     float64        `json:"BankBalance"`
 	Travels         []string       `json:"Travels"`
-
 	IsAnonymous     bool           `json:"IsAnonymous"`
 	PaymentID       []string       `json:"PaymentID"`
 }

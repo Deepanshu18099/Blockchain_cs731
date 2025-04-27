@@ -124,7 +124,7 @@ func (s *SmartContract) CancelTicket(ctx contractapi.TransactionContextInterface
 	user.BankBalance += refundPrice
 	provider.BankBalance -= refundPrice
 
-	paymentID := "payment-" + time.Now().Format("2006-01-02")
+	paymentID := "payment-" + time.Now().Format("2006-01-02 15:04:05")
 	payment := PaymentDetail{
 		PaymentID:   paymentID,
 		From:        userID,
