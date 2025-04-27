@@ -6,7 +6,12 @@ type User struct {
 	Phone    string `json:"phone"`
 	Role     string `json:"role"`
 	Password string `json:"password"`
-	UserID   string `json:"user_id"`
+	UserID   string `json:"userid"`
+}
+
+type Signin struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserRequest12 struct {

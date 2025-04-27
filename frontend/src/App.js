@@ -2,6 +2,7 @@
 import './App.css';
 import Signup from './containers/Singup.js';
 import SignIn from './containers/Signin.js';
+import Home from './containers/Home.js';
 import { Route, Routes } from 'react-router-dom';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
       } />
       <Route path="/signup" element={<Signup />} />
       <Route path="/signin" element={<SignIn />} />
+      <Route path="/home" element={<Home />} />
       {/* Add more routes as needed */}
     </Routes>
     

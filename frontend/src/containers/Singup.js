@@ -8,10 +8,14 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState({});
+  const [role, setRole] = useState("user");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({ api: "" });
+  const [userid, setUserid] = useState("");
   const navigate = useNavigate();
-  const [pvtKey, setPvtKey] = useState("");
-  const [publicKey, setPublicKey] = useState("");
+  // const [pvtKey, setPvtKey] = useState("");
+  // const [publicKey, setPublicKey] = useState("");
 
 
 
@@ -35,6 +39,22 @@ const SignUp = () => {
     return () => clearInterval(interval);
   }, [timeout]);
 
+  // function to handle form submit loading
+  useEffect(() => {
+    if (loading) {
+      // inactive all inputs
+      document.querySelectorAll("input, select").forEach((input) => {
+        input.setAttribute("disabled", "disabled");
+      });
+    } else {
+      // active all inputs
+      document.querySelectorAll("input, select").forEach((input) => {
+        input.removeAttribute("disabled");
+      });
+    }
+  }, [loading]);
+
+
 
 
   // pvt key and public key will be returned from the api, which user has to save
@@ -42,6 +62,7 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // print something to test
+    setLoading(true);
     console.log("User Name:", name);
     const apiurl = process.env.REACT_APP_API_URL;
     try {
@@ -51,21 +72,26 @@ const SignUp = () => {
         name,
         email,
         phone,
+        role,
+        password,
       });
 
+
       console.log("Response from API:", response.data);
+      setLoading(false);
 
       
       if (response.status !== 200) {
         setErrors({ api: "Error creating user" });
         return;
       }
-      console.log("Private Key:", pvtKey);
+      // console.log("Private Key:", pvtKey);
       console.log("User created successfully:", response.data);
 
-      setPvtKey(response.data.output.privateKey);
-      setPublicKey(response.data.message);
-      console.log("Private Key:", pvtKey);
+      // setPvtKey(response.data.output.privateKey);
+      // setPublicKey(response.data.message);
+      setUserid(response.data.userid);
+      // console.log("Private Key:", pvtKey);
       setTimeoutleft(timeout);
 
       // wait seconds to save the keys, and navigate to signin
@@ -83,7 +109,7 @@ const SignUp = () => {
       <div className="bg-white p-6 rounded shadow-md w-80">
         <h2 className="text-lg font-semibold mb-4">Sign Up</h2>
         {
-          !pvtKey && 
+          !userid && 
           <>
           <p className="mb-4">Please fill in the form to sign up.</p>
 
@@ -136,6 +162,57 @@ const SignUp = () => {
               className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-500"
               />
           </div>
+          <div className="mb-4">
+            <label
+              htmlFor="role"
+              className="block text-sm font-medium text-gray-700"
+              >
+              Role
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+              className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-500"
+            >
+              <option value="user">User</option>
+              <option value="provider">Provider</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+              >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-500"
+            />
+          </div>
+          {errors.api && (
+            <p className="text-red-500 text-sm mb-4">{errors.api}</p>
+          )}
+          <button
+            type="button"
+            className="w-full bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
+            onClick={() => {
+              setName("");
+              setEmail("");
+              setPhone("");
+              setRole("user");
+              setPassword("");
+              setErrors({ api: "" });
+            }}
+            >
+            Reset
+          </button>
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
@@ -145,7 +222,7 @@ const SignUp = () => {
         </form>
         </>
         }
-        {pvtKey && (
+        {/* {pvtKey && (
           <>
           <h3>
             Keys generated successfully. Please save the keys safely.
@@ -161,7 +238,16 @@ const SignUp = () => {
             You will be redirected to sign in page in {timeout} seconds.
           </p>
           </>
+        )} */}
+
+        {userid && (
+          <p className="mt-4 text-green-500">
+            User created successfully. You will be redirected to sign in page in{" "}
+            {timeoutleft} seconds.
+            Your User ID is: {userid}
+          </p>
         )}
+
         <p className="mt-4 text-blue-500">
           Already have an account?{" "}
           <a href="/signin" className="underline">

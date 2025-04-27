@@ -14,13 +14,14 @@ import (
 	"deepanshu18099/blockchain_ledger_backend/database"
 	"deepanshu18099/blockchain_ledger_backend/models"
 
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"os"
-	"fmt"
-	
+	"strconv"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -86,7 +87,7 @@ func CreateLedgerUser(c *gin.Context) {
 	for {
 		// generate a random user id
 		log.Println(rand.Intn(1000000))
-		userID = "USR_" +  strconv.Itoa(rand.Intn(1000000))
+		userID = "USR_" + strconv.Itoa(rand.Intn(1000000))
 		// check if user id already exists
 		err = collection.FindOne(c, bson.M{"user_id": userID}).Decode(&existingUser)
 		if err != mongo.ErrNoDocuments {
@@ -113,16 +114,14 @@ func CreateLedgerUser(c *gin.Context) {
 		return
 	}
 
-	
-
 	// register user id, password, and email in the database
 	_, err = collection.InsertOne(c, bson.M{
 		"email":    user.Email,
-		"name":     user.Name,
+		"username": user.Name,
 		"phone":    user.Phone,
 		"role":     user.Role,
 		"password": user.Password,
-		"user_id":  userID,
+		"userid":   userID,
 	})
 
 	if err != nil {
@@ -139,35 +138,54 @@ func CreateLedgerUser(c *gin.Context) {
 
 // will check email, password and returns access token for further use
 func Login(c *gin.Context) {
-	var user models.User
+	var user models.Signin
+	log.Println("Signin function called")
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Println("Signin function called")
+
 	// Check if the user exists in the database
 	db := database.ConnectDB()
 	collection := db.Database("blockchain_ledger").Collection("users")
-	err := collection.FindOne(c, bson.M{"email": user.Email, "password": user.Password}).Decode(&user)
+
+	var existingUser models.User
+	log.Println("Signin function called")
+	err := collection.FindOne(c, bson.M{"email": user.Email, "password": user.Password}).Decode(&existingUser)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
+	log.Println(existingUser)
+
+	log.Println("Signin function called")
+
 	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": user.Email,
+		"email":  user.Email,
+		"role":   existingUser.Role,
+		"userid": existingUser.UserID,
+		"exp":    jwt.TimeFunc().Add(time.Hour * 24).Unix(), // Token expiration time
 	})
+
+	log.Println("Signin function called", existingUser.UserID)
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+	// Return the token to the client
+	c.JSON(http.StatusOK, gin.H{
+		"token":  tokenString,
+		"role":   existingUser.Role,
+		"userid": existingUser.UserID,
+	})
 
-	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
-
 
 // checking authorization of a request
 func AuthMiddleware() gin.HandlerFunc {
