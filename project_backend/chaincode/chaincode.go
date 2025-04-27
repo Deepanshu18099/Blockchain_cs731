@@ -2,18 +2,18 @@ package chaincode
 
 import (
 	"deepanshu18099/blockchain_ledger_backend/models"
+	// "encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
-	"encoding/json"
+	
 )
-
-
 
 // BuildChaincodeArgs constructs the peer command
 func BuildChaincodeArgs(user models.UserRequest23) []string {
-	ccInput := fmt.Sprintf(`{"function":"CreateUser","Args":["%s","%s","%s","%s"]}`,
-		user.Email, user.Name, user.Phone, user.UserID)
+	ccInput := fmt.Sprintf(`{"function":"CreateUser","Args":["%s","%s","%s","%s","%s"]}`,
+		user.Email, user.Name, user.Phone, user.UserID, user.Role)
 	// Set environment variables
 	OrdererAddress := os.Getenv("OrdererAddress")
 	OrdererTLSHostname := os.Getenv("OrdererTLSHostname")
@@ -41,17 +41,25 @@ func BuildChaincodeArgs(user models.UserRequest23) []string {
 	}
 }
 
+
 // RunPeerCommand executes the command and returns output
-func RunPeerCommand(args []string) (models.UserRequest32, error) {
+func RunPeerCommand(args []string) ([]byte, error) {
 	cmd := exec.Command("peer", args...)
+	log.Printf("Executing command: %s\n", cmd.String())
+	// cmd.Dir = "/path/to/your/working/directory" // Set the working directory if needed
+	cmd.Env = os.Environ() // Use the current environment variables
+
+
+	// returnstype: fmt error or ctx.GetStub().PutState(username, providerJSON)
 	output, err := cmd.CombinedOutput()
+
+	log.Printf("Output: %s\n", output)
+
 	if err != nil {
-		return models.UserRequest32{}, fmt.Errorf("failed to run peer command: %w", err)
+		log.Printf("Error executing command: %s\n", err)
+		return nil, err
 	}
-	var sample_outs models.UserRequest32
-	err = json.Unmarshal(output, &sample_outs)
-	if err != nil {
-		return models.UserRequest32{}, fmt.Errorf("failed to unmarshal output: %w", err)
-	}
-	return sample_outs, nil
+	log.Printf("Command output: %s\n", output)
+	return output, nil
+	
 }

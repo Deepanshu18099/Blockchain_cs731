@@ -30,6 +30,7 @@ func main() {
 	router.PUT("/tickets/:id", controllers.UpdateTicket)
 	router.DELETE("/tickets/:id", controllers.DeleteTicket)
 	router.POST("/ledger/createuser", controllers.CreateLedgerUser)
+	router.POST("/ledger/login", controllers.Login)
 
 	router.Run("localhost:8080")
 
