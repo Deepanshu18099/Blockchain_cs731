@@ -31,7 +31,10 @@ func main() {
 	router.DELETE("/tickets/:id", controllers.DeleteTicket)
 	router.POST("/ledger/createuser", controllers.CreateLedgerUser)
 	router.POST("/ledger/login", controllers.Login)
-
+	router.POST("/ledger/addMoney", controllers.AddMoneyToUser)
+	router.POST("/Addtransport", controllers.AddTransport)
+	router.GET("/Gettransports", controllers.GetTransports)
+	router.GET("/Gettransport/:id", controllers.GetTransportStatus)
 	router.Run("localhost:8080")
 
 }

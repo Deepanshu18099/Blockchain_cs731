@@ -9,17 +9,7 @@ import (
 	"os/exec"
 )
 
-// // BuildChaincodeArgs constructs the peer command
-// func BuildChaincodeArgs(user models.UserRequest23, funcname string) []string {
-// 	ccInput := fmt.Sprintf(`{"function":"%s","Args":["%s","%s","%s","%s","%s"]}`,
-// 		funcname, user.Email, user.Name, user.Phone, user.UserID, user.Role)
-// 	// Set environment variables
 
-// argss := []string{}
-//
-//	argss = append(argss, arg1)
-//	argss = append(argss, arg2)....
-//
 // now making it generalised with func name and args seperated by comma
 func BuildChaincodeArgs(args []string, funcname string) []string {
 	// all args had to be split into strings in loop seperated by comma in ccinput args
@@ -34,6 +24,9 @@ func BuildChaincodeArgs(args []string, funcname string) []string {
 		}
 	}
 	ccInput += `]}`
+
+
+
 
 	OrdererAddress := os.Getenv("OrdererAddress")
 	OrdererTLSHostname := os.Getenv("OrdererTLSHostname")
@@ -77,7 +70,7 @@ func RunPeerCommand(args []string) ([]byte, error) {
 		log.Printf("Error executing command: %s\n", err)
 		return nil, err
 	}
-	log.Printf("Command output: %s\n", string(output))
+	log.Printf("Command output: %s\n", output)
 	return output, nil
 
 }
