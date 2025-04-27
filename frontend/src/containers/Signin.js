@@ -26,9 +26,7 @@ const Signin = () => {
         return;
       }
 
-      console.log("Response from API:", response.data);
-
-      const { token, role, userid } = response.data;
+      const { token, userid, role } = response.data;
 
       login(token, userid, role);  // update context + localStorage
 
