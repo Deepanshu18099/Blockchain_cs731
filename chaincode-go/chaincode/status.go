@@ -33,28 +33,17 @@ func (s *SmartContract) GetDetailUser(ctx contractapi.TransactionContextInterfac
 		return User{}, fmt.Errorf("the user %s does not exist", userID)
 	}
 	var user User
-	_ = json.Unmarshal(userJSON, &user)
+	json.Unmarshal(userJSON, &user)
 
-	/*
-	type User struct {
-		Name            string         `json:"Name"`
-		Email           string         `json:"Email"`
-		Phone           string         `json:"Phone"`
-		PastTravels     []string       `json:"PastTravels"`
-		UpcomingTravels []string       `json:"UpcomingTravels"`  //list of ticketIDs
-		BankBalance     float64        `json:"BankBalance"`
-		IsAnonymous     bool           `json:"IsAnonymous"`
-		PaymentID       []string       `json:"PaymentID"`
-	}
-	*/
 	return User{
 		Email: "",
 		Name:  "",
 		// Plus other safe fields if you want
 		// PastTravels:     user.PastTravels,
 		// UpcomingTravels: user.UpcomingTravels,
-		BankBalance: 	 user.BankBalance,
-		PaymentID:       user.PaymentID,
+		Travels:     user.Travels,
+		BankBalance: user.BankBalance,
+		PaymentID:   user.PaymentID,
 	}, nil
 }
 
@@ -68,69 +57,41 @@ func (s *SmartContract) GetDetailProvider(ctx contractapi.TransactionContextInte
 	}
 	var provider Provider
 
-	/*
-	type Provider struct {
-		Name             string             `json:"Name"`
-		Email            string             `json:"Email"`
-		Phone            string             `json:"Phone"`
-		Services         []string           `json:"Services"` // list of transportIDs
-		Verified         bool               `json:"Verified"`
-		BankBalance      float64            `json:"BankBalance"`
-		PaymentID        []string            `json:"PaymentID"`
-	}
-	*/
-	_ = json.Unmarshal(providerJSON, &provider)
-	
+	json.Unmarshal(providerJSON, &provider)
+
 	return Provider{
-		Services: provider.Services,
+		Services:    provider.Services,
 		BankBalance: provider.BankBalance,
-		PaymentID: provider.PaymentID,
-	},nil
+		PaymentID:   provider.PaymentID,
+	}, nil
 }
 
 func (s *SmartContract) GetDetailTicket(ctx contractapi.TransactionContextInterface, ticketID string) (TicketDetails, error) {
-	ticketJSON,_ := ctx.GetStub().GetState(ticketID)
+	ticketJSON, _ := ctx.GetStub().GetState(ticketID)
+	if ticketJSON == nil {
+		return TicketDetails{}, fmt.Errorf("error: ticket does not exist")
+	}
 	var ticket TicketDetails
-	_ = json.Unmarshal(ticketJSON,&ticket)
-	/*
-	type TicketDetails struct {
-		TicketID               string        `json:"TicketID"`
-		UserID                 string        `json:"OwnerEmail"`
-		DateofTravel           string        `json:"DateofTravel"`
-		Source                 string        `json:"Source"`
-		Destination            string        `json:"Destination"`
-		ModeofTravel           string        `json:"ModeofTravel"`
-		TransportID            string        `json:"TransportID"` 
-		SeatNumber             int32         `json:"SeatNumber"`
-		Price                  float64       `json:"Price"`
-		DateofBooking          string        `json:"DateofBooking"`
-		DateofUpdate           string        `json:"DateofUpdate"`
-		PaymentStatus          bool          `json:"PaymentStatus"` 
-		IsActive               bool          `json:"IsActive"`
-		DepartureTime          string        `json:"DepartureTime"`
-		ArrivalTime            string        `json:"ArrivalTime"`
-		JourneyDuration        string        `json:"JourneyDuration"`    
-		Status                 string        `json:"Status"`
-	}		
-	*/
+	json.Unmarshal(ticketJSON, &ticket)
+
 	return TicketDetails{
-		TicketID: ticket.TicketID,
-		DateofTravel: ticket.DateofTravel,
-		Source: ticket.Source,
-		Destination: ticket.Destination,
-		ModeofTravel: ticket.ModeofTravel,
-		TransportID: ticket.TransportID,
-		SeatNumber: ticket.SeatNumber,
-		Price: ticket.Price,
-		ArrivalTime: ticket.ArrivalTime,
-		DepartureTime: ticket.DepartureTime,
+		TicketID:        ticket.TicketID,
+		DateofTravel:    ticket.DateofTravel,
+		Source:          ticket.Source,
+		Destination:     ticket.Destination,
+		ModeofTravel:    ticket.ModeofTravel,
+		TransportID:     ticket.TransportID,
+		SeatNumber:      ticket.SeatNumber,
+		Price:           ticket.Price,
+		ArrivalTime:     ticket.ArrivalTime,
+		DepartureTime:   ticket.DepartureTime,
 		JourneyDuration: ticket.JourneyDuration,
-		DateofBooking: ticket.DateofBooking,
-		DateofUpdate: ticket.DateofUpdate,
-		PaymentStatus: ticket.PaymentStatus,
-		IsActive: ticket.IsActive,
-		Status: ticket.Status,
-	},nil
+		DateofBooking:   ticket.DateofBooking,
+		DateofUpdate:    ticket.DateofUpdate,
+		PaymentStatus:   ticket.PaymentStatus,
+		IsActive:        ticket.IsActive,
+		Status:          ticket.Status,
+	}, nil
 }
 
 //##########################################################################################################
