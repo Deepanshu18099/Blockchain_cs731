@@ -30,37 +30,85 @@ type SmartContract struct {
 // Or we can do it this way also
 
 
-func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) error {
+
+
+// func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) error {
+// 	var username = email
+// 	exists, err := s.detailExists(ctx, username)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if !exists {
+// 		return fmt.Errorf("the User %s does not exist", email)
+// 	}
+
+// 	detailJSON, err := ctx.GetStub().GetState(username)
+
+// 	if err != nil {
+// 		return fmt.Errorf("failed to read from worls state: %v", err)
+// 	}
+// 	if detailJSON == nil {
+// 		return fmt.Errorf("details of %s does not exist", email)
+// 	}
+// 	var asset User
+// 	err = json.Unmarshal(detailJSON, &asset)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to marshal the data")
+// 	}
+	
+// 	asset.BankBalance += amount
+
+// 	updatedUserJSON, err := json.Marshal(asset)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to marshal updated user data: %v", err)
+// 	}
+// 	return ctx.GetStub().PutState(username, updatedUserJSON)
+// }
+
+
+func (s *SmartContract) AddBalance(ctx contractapi.TransactionContextInterface, email string, amount float64) (string, error) {
+	// will return marshalled object of {updated balance and transactionID} to request
 	var username = email
 	exists, err := s.detailExists(ctx, username)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !exists {
-		return fmt.Errorf("the User %s does not exist", email)
+		return "", fmt.Errorf("the User %s does not exist", email)
 	}
-
 	detailJSON, err := ctx.GetStub().GetState(username)
-
 	if err != nil {
-		return fmt.Errorf("failed to read from worls state: %v", err)
+		return "", fmt.Errorf("failed to read from world state: %v", err)
 	}
 	if detailJSON == nil {
-		return fmt.Errorf("details of %s does not exist", email)
+		return "", fmt.Errorf("details of %s do not exist", email)
 	}
 	var asset User
 	err = json.Unmarshal(detailJSON, &asset)
 	if err != nil {
-		return fmt.Errorf("failed to marshal the data")
+		return "", fmt.Errorf("failed to unmarshal the data: %v", err)
 	}
-	
 	asset.BankBalance += amount
-
 	updatedUserJSON, err := json.Marshal(asset)
 	if err != nil {
-		return fmt.Errorf("failed to marshal updated user data: %v", err)
+		return "", fmt.Errorf("failed to marshal updated user data: %v", err)
 	}
-	return ctx.GetStub().PutState(username, updatedUserJSON)
+	err = ctx.GetStub().PutState(username, updatedUserJSON)
+	if err != nil {
+		return "", fmt.Errorf("failed to put updated user data: %v", err)
+	}
+	transactionID := ctx.GetStub().GetTxID()
+
+	
+	transactionDetails := map[string]interface{}{
+		"transactionID": transactionID,
+		"updatedBalance": asset.BankBalance,
+	}
+	transactionDetailsJSON, err := json.Marshal(transactionDetails)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal transaction details: %v", err)
+	}
+	return string(transactionDetailsJSON), nil
 }
 
 func (s *SmartContract) GetBalance(ctx contractapi.TransactionContextInterface, email string) (float64, error) {
