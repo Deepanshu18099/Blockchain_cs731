@@ -22,6 +22,7 @@ func AddMoneyToUser(c *gin.Context) {
 	*/
 	// use authmiddleware to check if token is valid and get claims
 	// using the authcheck function
+	log.Println("AddMoneyToUser function called")
 	claims, ok := utils.Authcheck(c)
 	log.Println("AddMoneyToUser function called", claims, ok)
 
@@ -93,7 +94,6 @@ func GetTransports(c *gin.Context) {
 	email, ok := claims["email"].(string)
 	log.Println("GetTransports function called", email)
 	if !ok {
-
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
 		return

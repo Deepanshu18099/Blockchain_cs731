@@ -4,9 +4,9 @@ import { useAuth } from "./Authcontext";
 import { Link } from "react-router-dom";
 import { FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Home() {
-  const { userId, role, balance } = useAuth();
   
   const sampleData = {
     flight: [
@@ -23,11 +23,16 @@ function Home() {
     ]
   };
 
+  const { userId, role } = useAuth();
   const [mode, setMode] = useState("flight");
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [addMoneyAmount, setAddMoneyAmount] = useState("");
+  const [balance, setBalance] = useState(0); // Initialize balance state
+  const token = localStorage.getItem("token");
+
 
   // navigate
   const navigate = useNavigate();
@@ -43,61 +48,94 @@ function Home() {
   };
   const travelOptions = sampleData[mode] || [];
 
-  const handleAddMoney = () => {
-    alert("Feature to add money coming soon!");
+  const handleAddMoney = async () => {
+    if (!addMoneyAmount) {
+      alert("Please enter an amount to add.");
+      return;
+    }
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/ledger/addMoney",
+        { Amount: Number(addMoneyAmount) },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.status === 200) {
+        alert("Money added successfully!");
+        setBalance((prevBalance) => prevBalance + Number(addMoneyAmount));
+        setAddMoneyAmount("");
+      } else {
+        alert("Failed to add money.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to add money.");
+    }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Navbar */}
-      <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-        <div className="text-xl font-bold text-blue-600">MyTravel.com</div>
-
-        {userId && (
-          <div className="flex items-center gap-6">
-            <div className="text-sm text-gray-700">
-              <div><strong>Balance:</strong> ₹{balance}</div>
-              <button
-                onClick={handleAddMoney}
-                className="mt-1 text-xs bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600"
-              >
-                Add Money
-              </button>
-            </div>
-
-            <div className="text-sm text-gray-700 hidden md:block">
-              <div><strong>Role:</strong> {role}</div>
-              <div><strong>UserID:</strong> {userId}</div>
-            </div>
-
-            {/* User Icon Dropdown */}
-            <div className="relative">
-              <FaUserCircle
-                className="text-3xl text-gray-600 cursor-pointer"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-              />
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-md">
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </nav>
+      <div className="flex justify-between items-center bg-white p-4 shadow-md">
+        <div className="text-xl font-bold">MyTravel.com</div>
+        <div className="flex items-center gap-6">
+          {userId && (
+            <>
+              <div className="text-sm">
+                <p><strong>User ID:</strong> {userId}</p>
+                <p><strong>Role:</strong> {role}</p>
+                <p><strong>Balance:</strong> ₹{balance}</p>
+              </div>
+              <div className="relative">
+                <FaUserCircle
+                  size={32}
+                  className="cursor-pointer"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                />
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded shadow-md z-10">
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="flex flex-col items-center justify-center p-6">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
           <h2 className="text-xl font-bold mb-4 text-center">Welcome to MyTravel.com</h2>
 
-          {!userId ? (
+          {userId ? (
+            <div className="mb-6">
+              <div className="flex flex-col gap-2">
+                <input
+                  type="number"
+                  value={addMoneyAmount}
+                  onChange={(e) => setAddMoneyAmount(e.target.value)}
+                  placeholder="Enter amount to add"
+                  className="w-full border rounded p-2"
+                />
+                <button
+                  onClick={handleAddMoney}
+                  className="bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                >
+                  Add Money
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="mb-6">
               <p className="mb-2">Please sign up or sign in to continue.</p>
               <div className="flex justify-center gap-4">
@@ -109,10 +147,9 @@ function Home() {
                 </Link>
               </div>
             </div>
-          ) : (
-            <></> // User details are already in navbar
           )}
 
+          {/* Travel Mode Selector */}
           <div className="mb-4">
             <label className="block font-semibold mb-1">Mode of Travel</label>
             <select
@@ -126,6 +163,7 @@ function Home() {
             </select>
           </div>
 
+          {/* Source Input */}
           <div className="mb-4">
             <label className="block font-semibold mb-1">Source</label>
             <input
@@ -137,6 +175,7 @@ function Home() {
             />
           </div>
 
+          {/* Destination Input */}
           <div className="mb-4">
             <label className="block font-semibold mb-1">Destination</label>
             <input
@@ -148,6 +187,7 @@ function Home() {
             />
           </div>
 
+          {/* Date Picker */}
           <div className="mb-4">
             <label className="block font-semibold mb-1">Date of Travel</label>
             <input
@@ -158,6 +198,7 @@ function Home() {
             />
           </div>
 
+          {/* Fetch Options Button */}
           <button
             onClick={handleBooking}
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
@@ -165,18 +206,21 @@ function Home() {
             Fetch Available Options
           </button>
 
+          {/* Available Options */}
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">Available Options</h3>
             {travelOptions.map((option) => (
-              <div key={option.id} className="border p-4 mb-2 rounded">
+              <div
+                key={option.id}
+                className="border p-4 mb-2 rounded cursor-pointer hover:shadow"
+                onClick={() => navigate(`/details/${option.id}`)}
+              >
                 <p><strong>Source:</strong> {option.source}</p>
                 <p><strong>Destination:</strong> {option.destination}</p>
                 <p><strong>Date:</strong> {option.date}</p>
                 <p><strong>Price:</strong> ₹{option.price}</p>
-                <Link to={`/details/${option.id}`} className="text-blue-500 hover:underline">
-                  View Details
-                </Link>
-              </div>
+                <p className="text-blue-500 hover:underline mt-2">View Details</p>
+              </div>       
             ))}
           </div>
         </div>

@@ -2,18 +2,17 @@ package main
 
 import (
 	"deepanshu18099/blockchain_ledger_backend/controllers"
+	"log"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"log"
 )
-
 
 // capital letter starting fields are exportable fields.
 // these are public fields.
 // the later json thing is go specific, and is for golang
-
-
 
 func main() {
 	// load env variables from .env file located at ../.env
@@ -21,9 +20,20 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	
+
 	router := gin.Default()
-	router.Use(cors.Default())
+	// allow requests from all origins, cors error should not occur, also from localhost
+	router.Use(cors.New(cors.Config{
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"*"}, // <-- allow ALL headers
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+	// router.Use(cors.Default())
 	router.GET("/tickets", controllers.GetTickets)
 	router.GET("/tickets/:id", controllers.GetTicketByID)
 	router.POST("/tickets", controllers.CreateTicket)
@@ -35,6 +45,7 @@ func main() {
 	router.POST("/Addtransport", controllers.AddTransport)
 	router.GET("/Gettransports", controllers.GetTransports)
 	router.GET("/Gettransport/:id", controllers.GetTransportStatus)
-	router.Run("localhost:8080")
+
+	router.Run(":8080")
 
 }
