@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	// "math"
 	// "slices"
@@ -11,60 +12,69 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, userID, transportID, date string, seatNumber int32) (string, error) {
+func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, userID, transportID, date string, seatNumber1 string) ([]byte, error) {
+	// converting to int
+	var seatNumberint int
+	seatNumberint, err := strconv.Atoi(seatNumber1)
+
+	seatNumber := int32(seatNumberint)
+	if err != nil {
+		return nil, fmt.Errorf("error: invalid seat number format, expected integer")
+	}
+
 	/*Ticket in the past can not be booked*/
 	bookingDate, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		return "", fmt.Errorf("error: invalid date format, expected YYYY-MM-DD")
+		return nil, fmt.Errorf("error: invalid date format, expected YYYY-MM-DD")
 	}
 	currentDate := time.Now()
 	if bookingDate.Before(currentDate.Truncate(24 * time.Hour)) {
-		return "", fmt.Errorf("error: cannot book ticket for a past date: %s", date)
+		return nil, fmt.Errorf("error: cannot book ticket for a past date: %s", date)
 	}
 
 	/*details of the user*/
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
-		return "", fmt.Errorf("error: failed to read user data: %v", err)
+		return nil, fmt.Errorf("error: failed to read user data: %v", err)
 	}
 	if userJSON == nil {
-		return "", fmt.Errorf("error: user %s does not exist", userID)
+		return nil, fmt.Errorf("error: user %s does not exist", userID)
 	}
 	var user User
 	err = json.Unmarshal(userJSON, &user)
 	if err != nil {
-		return "", fmt.Errorf("error: failed to parse user data: %v", err)
+		return nil, fmt.Errorf("error: failed to parse user data: %v", err)
 	}
 
 	/*transport details from the given transport ID*/
 	transportJSON, err := ctx.GetStub().GetState(transportID)
 	if err != nil {
-		return "", fmt.Errorf("error: failed to read transport data: %v", err)
+		return nil, fmt.Errorf("error: failed to read transport data: %v", err)
 	}
 	if transportJSON == nil {
-		return "", fmt.Errorf("error: transport service %s does not exist", transportID)
+		return nil, fmt.Errorf("error: transport service %s does not exist", transportID)
 	}
 	var transport TransportDetails
 	err = json.Unmarshal(transportJSON, &transport)
 	if err != nil {
-		return "", fmt.Errorf("error: failed to parse transport data: %v", err)
+		return nil, fmt.Errorf("error: failed to parse transport data: %v", err)
 	}
 
 	/*if the transport does not have any seats then we can not overbook*/
 	seats, exists := transport.SeatMap[date]
 	if !exists || len(seats) == 0 {
-		return "", fmt.Errorf("error: no available seats on transport %s for date %s", transportID, date)
+		return nil, fmt.Errorf("error: no available seats on transport %s for date %s", transportID, date)
 	}
 
 	/*the transportation stystem used dynamic price*/
 	currentPrice, err := calculateDynamicPrice(ctx, transportID, date)
 	if err != nil {
-		return "", fmt.Errorf("error while finding the price %s", err)
+		return nil, fmt.Errorf("error while finding the price %s", err)
 	}
 
 	/*checking if the user has sufficient balance to book the ticket*/
 	if user.BankBalance < currentPrice {
-		return "Fail", fmt.Errorf("error insufficient balance! required: %.2f, available: %.2f", currentPrice, user.BankBalance)
+		return nil, fmt.Errorf("error insufficient balance! required: %.2f, available: %.2f", currentPrice, user.BankBalance)
 	}
 
 	var flag = true
@@ -77,23 +87,22 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 	}
 	// transport.Travellers[date][seatNumber-1] = userID /*maintaining the userID of the travellers*/
 	if flag {
-		return "error: ticket can not be booked", fmt.Errorf("the seat is already booked")
+		return nil, fmt.Errorf("the seat is already booked")
 	}
-
 
 	providerID := transport.ProviderID
 
 	providerJSON, err := ctx.GetStub().GetState(providerID)
 	if err != nil {
-		return "Fail", fmt.Errorf("error %s occured", err)
+		return nil, fmt.Errorf("error %s occured", err)
 	}
 	if providerJSON == nil {
-		return "Fail", fmt.Errorf("error: provider %s doesn't exist", providerID)
+		return nil, fmt.Errorf("error: provider %s doesn't exist", providerID)
 	}
 	var provider Provider
 	err = json.Unmarshal(providerJSON, &provider)
 	if err != nil {
-		return "Fail", fmt.Errorf("error: failed to unmarshal provider %s", providerID)
+		return nil, fmt.Errorf("error: failed to unmarshal provider %s", providerID)
 	}
 
 	// err = UserToProviderPayment(ctx, userID, providerID, currentPrice)
@@ -136,7 +145,7 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 		SeatNumber:      seatNumber,
 		Price:           currentPrice,
 		DateofBooking:   time.Now().Format("2006-01-02"), // Use actual timestamp in real implementation
-		PaymentStatus:   true,                                     // Payment is verified
+		PaymentStatus:   true,                            // Payment is verified
 		IsActive:        true,
 		DepartureTime:   transport.DepartureTime,
 		ArrivalTime:     transport.ArrivalTime,
@@ -147,11 +156,11 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal updated user data: %v", err)
+		return nil, fmt.Errorf("failed to marshal updated user data: %v", err)
 	}
 	err = ctx.GetStub().PutState(userID, updatedUserJSON)
 	if err != nil {
-		return "", fmt.Errorf("failed to update user state: %v", err)
+		return nil, fmt.Errorf("failed to update user state: %v", err)
 	}
 
 	// updatedUserJSON,_ := json.Marshal(user)
@@ -159,13 +168,23 @@ func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, 
 
 	updatedTransportJSON, err := json.Marshal(transport)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal updated transport data: %v", err)
+		return nil, fmt.Errorf("failed to marshal updated transport data: %v", err)
 	}
 	ctx.GetStub().PutState(transportID, updatedTransportJSON)
 
-	ticketJSON,_ := json.Marshal(ticket)
+	ticketJSON, _ := json.Marshal(ticket)
 	ctx.GetStub().PutState(ticketID, ticketJSON)
-	
-	return fmt.Sprintf("ticket booked successfully! Ticket ID: %s", ticketID), nil
-}
 
+	return_item := map[string]interface{}{
+		"ticketID":      ticketID,
+		"transactionID": ctx.GetStub().GetTxID(),
+		"message":       "Ticket booked successfully",
+		"paymentid":     paymentID,
+		"BankBalance":   user.BankBalance,
+	}
+	returnitemJSON, err := json.Marshal(return_item)
+	if err != nil {
+		return nil, fmt.Errorf("error in serializing the data %s", err)
+	}
+	return returnitemJSON, nil
+}

@@ -126,7 +126,7 @@ func GetTransports(c *gin.Context) {
 	// now return success, and transport details
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Transport details fetched successfully",
-		"transports":    result["availableTransports"],
+		"transports":     result["availableTransports"],
 		"transaction_id": result["transactionID"],
 	})
 }
@@ -149,14 +149,18 @@ func BookTicket(c *gin.Context) {
 	type BookTicketRequest struct {
 		TransportID string `json:"transportID"`
 		Date        string `json:"date"`
-		SeatNumber  int    `json:"seatNumber"`
+		SeatNumber  string `json:"seatnumber"`
 	}
 	var Thisreq BookTicketRequest
+
+	// log.Println("contents of c are", c)
 
 	if err := c.ShouldBindJSON(&Thisreq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	log.Println("BookTicket function called", Thisreq)
 
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
@@ -172,7 +176,7 @@ func BookTicket(c *gin.Context) {
 
 	// now call func (s *SmartContract) BookTicket(ctx contractapi.TransactionContextInterface, userID, transportID, date string, seatNumber int32) (string, error) {
 	// now prepare to send the request to the chaincode
-	args := chaincode.BuildChaincodeArgs([]string{email, Thisreq.TransportID, Thisreq.Date, string(Thisreq.SeatNumber)}, "BookTicket")
+	args := chaincode.BuildChaincodeArgs([]string{email, Thisreq.TransportID, Thisreq.Date, Thisreq.SeatNumber}, "BookTicket")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -181,12 +185,19 @@ func BookTicket(c *gin.Context) {
 	log.Println("BookTicket function called", output)
 	// Decode the output
 	// ........................
+	clean_output := utils.Cleancode2(c, output)
+	if clean_output == nil {
+		log.Println("BookTicket function called", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("BookTicket function called", clean_output)
 
 	// now return success, and updated balance of the user
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Ticket booked successfully",
-		"updatedbalance": "1100",
-		"transaction_id": "tx_10101",
+		"updatedbalance": clean_output["BankBalance"],
+		"transaction_id": clean_output["transactionID"],
 	})
 
 }

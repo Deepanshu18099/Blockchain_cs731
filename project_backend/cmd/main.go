@@ -36,7 +36,7 @@ func main() {
 	// router.Use(cors.Default())
 	router.GET("/tickets", controllers.GetTickets)
 	router.GET("/tickets/:id", controllers.GetTicketByID)
-	router.POST("/tickets", controllers.CreateTicket)
+	router.POST("/tickets", controllers.BookTicket)
 	router.PUT("/tickets/:id", controllers.UpdateTicket)
 	router.DELETE("/tickets/:id", controllers.DeleteTicket)
 	router.POST("/ledger/createuser", controllers.CreateLedgerUser)
@@ -44,10 +44,9 @@ func main() {
 	router.POST("/ledger/addMoney", controllers.AddMoneyToUser)
 	router.POST("/Addtransport", controllers.AddTransport)
 
-
 	// to get all transports available for that selections by the user
 	// `http://localhost:8080/Gettransports/${mode}/${source}/${destination}/${date}`,
-	 
+
 	router.GET("/Gettransports/:mode/:source/:destination/:date", controllers.GetTransports)
 	router.GET("/Gettransport/:id", controllers.GetTransportStatus)
 	router.Run(":8080")

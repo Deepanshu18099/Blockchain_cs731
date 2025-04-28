@@ -103,27 +103,36 @@ function Home() {
       alert("Failed to add transport option.");
     }
   }
-  // set travel options to sample data in case of no data
-  if (travelOptions.length === 0) {
-    setTravelOptions(sampleData);
-  }
+  // set travel options to sample data in case of no data by 
 
 
-  const set_data = (data) => {
+  const set_data = (data) =>  {
+    // if data is not array or has size 0, return
+    if (!Array.isArray(data) || data.length === 0) {
+      return;
+    }
+
     // now make the object from parsing the data
+
+    // seatleft will be size of seatMap[first key of this object]
     const newData = data.map((item) => ({
-      id: item.ID,
-      source: item.Source,
-      destination: item.Destination,
-      price: item.BasePrice,
-      date: item.DateofTravel,
-      starttime: item.DepartureTime,
-      endtime: item.ArrivalTime,
-      seatleft: item.Capacity,
-      providerId: item.ProviderID
+      id: item["ID"],
+      seatleft: item["AvailableSeats"][Object.keys(item["AvailableSeats"])[0]].length,
+      seatmap: item["AvailableSeats"][Object.keys(item["AvailableSeats"])[0]],
+      starttime: item["DepartureTime"],
+      endtime: item["ArrivalTime"],
+      price: item["BasePrice"],
+      date: Object.keys(item["AvailableSeats"])[0],
+      source: item["Source"],
+      destination: item["Destination"],
+      providerId: item["ProviderID"],
     }));
+    // set the data to travel options
     setTravelOptions(newData);
-  }
+    // console.log(newData);
+    // console.log(data);
+    // console.log(travelOptions);
+  };
 
   const handleBooking = async() => {
     // alert(`Booking a ${mode} ticket from ${source} to ${destination} on ${date}`);
@@ -146,7 +155,7 @@ function Home() {
       console.log(response.data);
       if (response.status === 200) {
         console.log("Data fetched successfully");
-        alert("Data fetched successfully");
+        // alert("Data fetched successfully");
         // navigate(`/details/${response.data.id}`);
       } else {
         alert("Failed to fetch data.");
@@ -173,7 +182,7 @@ function Home() {
       */
 
       // Now using the response data, we can show the available options
-      set_data(response.data.transports);
+      set_data(response.data["transports"]);
     }
     catch (error) {
       console.error(error);
@@ -351,19 +360,31 @@ function Home() {
           {/* Available Options */}
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">Available Options</h3>
-            {travelOptions.map((option) => (
-              <div
-                key={option.id}
-                className="border p-4 mb-2 rounded cursor-pointer hover:shadow"
-                onClick={() => navigate(`/details/${option.id}`)}
-                >
-                <p><strong>Source:</strong> {option.source}</p>
-                <p><strong>Destination:</strong> {option.destination}</p>
-                <p><strong>Date:</strong> {option.date}</p>
-                <p><strong>Price:</strong> ₹{option.price}</p>
-                <p className="text-blue-500 hover:underline mt-2">View Details</p>
-              </div>       
-            ))}
+            {travelOptions.length > 0 ? (
+              <ul className="pl-5">
+                {travelOptions.map((option) => (
+                  // good box for showing data
+                  <li key={option.id} className="mb-4 p-4 border rounded shadow-md bg-gray-50">
+                    <p><strong>Source:</strong> {option.source}</p>
+                    <p><strong>Destination:</strong> {option.destination}</p>
+                    <p><strong>Start Time:</strong> {option.starttime}</p>
+                    <p><strong>End Time:</strong> {option.endtime}</p>
+                    <p><strong>Price:</strong> ₹{option.price}</p>
+                    <p><strong>Seats Left:</strong> {option.seatleft}</p>
+                    <button
+                    // also send the data of the seat map and metadata to this
+                      onClick={() => navigate(`/details/${option.id}`, { state: { option } })}
+                      className="bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600"
+                    >
+                      Book Now
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">No available options found.</p>
+            )}
+
           </div>
         </div>
         </div>
