@@ -99,35 +99,35 @@ func GetTransports(c *gin.Context) {
 		return
 	}
 	// get Source, Destination, Date, Mode of transport from the request body using a struct
-	type GetTransportsRequest struct {
-		Source      string `json:"source"`
-		Destination string `json:"destination"`
-		Date        string `json:"date"`
-		Mode        string `json:"mode"`
-	}
+	source := c.Param("source")
+	destination := c.Param("destination")
+	date := c.Param("date")
+	mode := c.Param("mode")
 
-	var Thisreq GetTransportsRequest
+	log.Println("GetTransports function called", source, destination, date, mode)
 
-	if err := c.ShouldBindJSON(&Thisreq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	// now prepare to send the request to the chaincode
-	args := chaincode.BuildChaincodeArgs([]string{Thisreq.Source, Thisreq.Destination, Thisreq.Date, Thisreq.Mode}, "GetTransports")
+	// // now prepare to send the request to the chaincode
+	args := chaincode.BuildChaincodeArgs([]string{source, destination, date, mode}, "GetAvailableTransports")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	log.Println("GetTransports function called", output)
+	// log.Println("GetTransports function called", output)
 	// Decode the output
-	// .........................
+	result := utils.Cleancode2(c, output)
+	log.Println("GetTransports done", result)
+	if result == nil {
+		log.Println("GetTransports function called", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
 
 	// now return success, and transport details
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Transport details fetched successfully",
-		"transports":     "List of transports",
-		"transaction_id": "tx_10101",
+		"transports":    result["availableTransports"],
+		"transaction_id": result["transactionID"],
 	})
 }
 
@@ -248,6 +248,8 @@ func AddTransport(c *gin.Context) {
 		c.Abort()
 		return
 	}
+
+	log.Println("AddTransport function called", email)
 	// get Source, Destination, Date, Price, ticketcount from the request body
 	// var Source string
 	// var Destination string
@@ -257,42 +259,70 @@ func AddTransport(c *gin.Context) {
 	type AddTransportRequest struct {
 		Source      string `json:"source"`
 		Destination string `json:"destination"`
-		Date        string `json:"date"`
-		Price       int    `json:"price"`
-		TicketCount int    `json:"ticketcount"`
+		Mode        string `json:"mode"`
+		StartDate   string `json:"startdate"`
+		EndDate     string `json:"enddate"`
+		Price       string `json:"price"`
+		SeatCount   string `json:"seatcount"`
 	}
+	log.Println("AddTransport function called", email)
 	var Thisreq AddTransportRequest
 	if err := c.ShouldBindJSON(&Thisreq); err != nil {
+		log.Println("AddTransport function called", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	log.Println("AddTransport function called", Thisreq)
 	Source := Thisreq.Source
 	Destination := Thisreq.Destination
-	Date := Thisreq.Date
+	Mode := Thisreq.Mode
+	StartDate := Thisreq.StartDate
+	EndDate := Thisreq.EndDate
 	Price := Thisreq.Price
-	ticketcount := Thisreq.TicketCount
+	SeatCount := Thisreq.SeatCount
 
 	// generate a transportID unique for the transport
-	var transportID string
-	// using the uuid package
-	transportID = uuid.New().String()
 
+	// using the uuid package
+	transportID := uuid.New().String()
+	log.Println("AddTransport function called", transportID)
+	log.Println("AddTransport function called", email, Source, Destination, StartDate, EndDate, Price, SeatCount, Mode)
+
+	// set time to 10 am to 4 pm
+	sample_dep_time := "10:00"
+	sample_arrival_time := "16:00"
+	total_time := "6h"
 	// now prepare to send the request to the chaincode with the transportID
-	args := chaincode.BuildChaincodeArgs([]string{transportID, email, Source, Destination, Date, string(Price), string(ticketcount)}, "AddTransport")
+	args := chaincode.BuildChaincodeArgs([]string{email, transportID, Source, Destination, sample_dep_time, sample_arrival_time, total_time, Mode, SeatCount, Price, StartDate, EndDate}, "AddTransportService")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	log.Println("AddTransport function called", output)
+
 	// Decode the output
-	// ...............................
+	clean_output := utils.Cleancode2(c, output)
+	if clean_output == nil {
+		log.Println("AddTransport function called", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("AddTransport function called", clean_output)
+	// check if the output is success
+	log.Println("AddTraction called", clean_output["transportID"])
+	// check if the transportID is present in the output
+	if clean_output["transportID"] == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add transport"})
+		return
+	}
 
 	// now return success, and transportID
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Transport added successfully",
 		"transport_id":   transportID,
-		"transaction_id": "tx_10101",
+		"transaction_id": clean_output["transaction_id"],
 	})
 }
 

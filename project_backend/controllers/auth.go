@@ -178,11 +178,23 @@ func Login(c *gin.Context) {
 	argss := []string{}
 	argss = append(argss, existingUser.Email)
 	// now prepare to send the request to the chaincode
-	args := chaincode.BuildChaincodeArgs(argss, "GetDetailUser")
-	output, err := chaincode.RunPeerCommand(args)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+
+	output := []byte{}
+	if existingUser.Role == "user" {
+		args := chaincode.BuildChaincodeArgs(argss, "GetDetailUser")
+		output, err = chaincode.RunPeerCommand(args)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if existingUser.Role == "provider" {
+		args := chaincode.BuildChaincodeArgs(argss, "GetDetailProvider")
+		output, err = chaincode.RunPeerCommand(args)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	// Decode the output
@@ -201,7 +213,6 @@ func Login(c *gin.Context) {
 		"exp":     jwt.TimeFunc().Add(time.Hour * 24).Unix(), // Token expiration time
 	})
 
-
 	log.Println("Signin function called", existingUser.UserID)
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
@@ -218,5 +229,3 @@ func Login(c *gin.Context) {
 	})
 
 }
-
-
