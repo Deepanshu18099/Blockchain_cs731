@@ -1,107 +1,100 @@
-# Asset transfer basic sample
+# MyTravel.com – Blockchain-Based Ticket Management System
 
-The asset transfer basic sample demonstrates:
+## Overview
+# Team Members:
+- Deepanshu(210310)
+- Narendra(210649)
 
-- Connecting a client application to a Fabric blockchain network.
-- Submitting smart contract transactions to update ledger state.
-- Evaluating smart contract transactions to query ledger state.
-- Handling errors in transaction invocation.
+This was our course project for CS731(Prof. Angshuman karmakar) at IIT Kanpur, where we explored the integration of blockchain technology with a web application.
 
-## About the sample
+MyTravel.com is a blockchain-based ticket management platform developed using Hyperledger Fabric.  
+It enables customers to book, update, and cancel transport tickets securely, while service providers can register and manage transport services.
 
-This sample includes smart contract and application code in multiple languages. This sample shows create, read, update, transfer and delete of an asset.
+This project includes:
+- Frontend: React.js
+- Backend: Golang (API server)
+- Blockchain Network: Hyperledger Fabric
+- Database: MongoDB
 
-For a more detailed walk-through of the application code and client API usage, refer to the [Running a Fabric Application tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/write_first_app.html) in the main Hyperledger Fabric documentation.
+[Full Project Report (CS731)](https://github.com/Deepanshu18099/Blockchain_cs731/)
 
-### Application
 
-Follow the execution flow in the client application code, and corresponding output on running the application. Pay attention to the sequence of:
+Setup Instructions
 
-- Transaction invocations (console output like "**--> Submit Transaction**" and "**--> Evaluate Transaction**").
-- Results returned by transactions (console output like "**\*\*\* Result**").
+## 🛠 Prerequisites
 
-### Smart Contract
+- Docker and Docker Compose
+- Node.js and npm (for React frontend)
+- Golang installed (>= 1.20)
+- Hyperledger Fabric binaries installed
+- MongoDB installed locally
 
-The smart contract (in folder `chaincode-xyz`) implements the following functions to support the application:
 
-- CreateAsset
-- ReadAsset
-- UpdateAsset
-- DeleteAsset
-- TransferAsset
 
-Note that the asset transfer implemented by the smart contract is a simplified scenario, without ownership validation, meant only to demonstrate how to invoke transactions.
+### 1. Clone the Repository
 
-## Running the sample
+```bash
+cd ~{HyperledgerPath}/fabric-samples/asset-transfer-basic
+git clone https://github.com/Deepanshu18099/Blockchain_cs731/ chaincode-go
+```
 
-The Fabric test network is used to deploy and run this sample. Follow these steps in order:
 
-1. Create the test network and a channel (from the `test-network` folder).
+## To Start the Hyperledger Fabric Network
+# Set environment variables
 
-   ```
-   ./network.sh up createChannel -c mychannel -ca
-   ```
+```bash
+export HyperledgerPath=~/fabric-samples-path
+export CORE_PEER_TLS_ENABLED=true
+export FABRIC_CFG_PATH=${HyperledgerPath}/fabric-samples/test-network/../config
+export CORE_PEER_LOCALMSPID=Org1MSP
+export CORE_PEER_MSPCONFIGPATH=${HyperledgerPath}/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/
+export CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+export CORE_PEER_TLS_ROOTCERT_FILE=${HyperledgerPath}/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 
-1. Deploy one of the smart contract implementations (from the `test-network` folder).
+# Start Fabric Network
+${HyperledgerPath}/fabric-samples/test-network/network.sh up
 
-   - To deploy the **TypeScript** chaincode implementation:
+# Create a Channel
+${HyperledgerPath}/fabric-samples/test-network/network.sh createChannel -c ticketsystem
 
-     ```shell
-     ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-typescript/ -ccl typescript
-     ```
+# Deploy the Chaincode
+${HyperledgerPath}/fabric-samples/test-network/network.sh deployCC -ccn keyvalchaincode -ccp ${HyperledgerPath}/fabric-samples/asset-transfer-basic/chaincode-go -ccl go -c ticketsystem
+```
 
-   - To deploy the **JavaScript** chaincode implementation:
 
-     ```shell
-     ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-javascript/ -ccl javascript
-     ```
 
-   - To deploy the **Go** chaincode implementation:
+## Run the Backend API Server
+cd ./backend
 
-     ```shell
-     ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go/ -ccl go
-     ```
+# Install dependencies
+go mod tidy
 
-   - To deploy the **Java** chaincode implementation:
-     ```shell
-     ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-java/ -ccl java
-     ```
+# Run backend server (main.go is inside /cmd)
+cd cmd
+go run main.go
 
-1. Run the application (from the `asset-transfer-basic` folder).
 
-   - To run the **TypeScript** sample application:
 
-     ```shell
-     cd application-gateway-typescript
-     npm install
-     npm start
-     ```
+## Run the Frontend (React App)
+# Navigate to frontend directory
+cd chaincode-go/frontend
 
-   - To run the **JavaScript** sample application:
+# Install frontend dependencies
+npm install
 
-     ```shell
-     cd application-gateway-javascript
-     npm install
-     npm start
-     ```
+# Start the React app
+npm start
 
-   - To run the **Go** sample application:
 
-     ```shell
-     cd application-gateway-go
-     go run .
-     ```
 
-   - To run the **Java** sample application:
-     ```shell
-     cd application-gateway-java
-     ./gradlew run
-     ```
+## Useful Peer CLI Commands (for Hyperledger Fabric)
 
-## Clean up
-
-When you are finished, you can bring down the test network (from the `test-network` folder). The command will remove all the nodes of the test network, and delete any ledger data that you created.
-
-```shell
-./network.sh down
+### Setup Chaincode
+```bash
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com \
+--tls --cafile ${HyperledgerPath}/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+-C ticketsystem -n keyvalchaincode \
+--peerAddresses localhost:7051 \
+--tlsRootCertFiles ${HyperledgerPath}/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
+-c '{"function":"CreateUser","Args":["email","name","phone","userid"]}'
 ```
