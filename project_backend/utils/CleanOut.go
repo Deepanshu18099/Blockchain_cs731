@@ -2,17 +2,10 @@ package utils
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
-
-
-
-
-
-
-
 
 func Cleancode(output []byte) string {
 	// Clean the output as its from the chaincode (terminal)
@@ -20,7 +13,7 @@ func Cleancode(output []byte) string {
 	// remove the first 6 characters and last 2 characters
 	// and return the string
 	outputstring := string(output)
-	log.Println("Output string", outputstring)
+	// log.Println("Output string", outputstring)
 	// find the first occurrence of "payload" and remove everything before it
 	start := 0
 	for i := 0; i < len(outputstring); i++ {
@@ -42,12 +35,12 @@ func Cleancode(output []byte) string {
 
 func Cleancode2(c *gin.Context, output []byte) map[string]interface{} {
 
-	log.Println("First output", string(output))
+	// log.Println("First output", string(output))
 
 	// Clean the output as its from the chaincode (terminal)
 	// extract the payload if present after cleaning
 	outputstring := Cleancode(output)
-	log.Println("Second output", outputstring)
+	// log.Println("Second output", outputstring)
 
 	// now this string contains (/")'s as read from terminal we need to make them normal
 	newcleanstring := ""
@@ -61,7 +54,7 @@ func Cleancode2(c *gin.Context, output []byte) map[string]interface{} {
 			newcleanstring += string(outputstring[i])
 		}
 	}
-	log.Println("Third output", newcleanstring)
+	// log.Println("Third output", newcleanstring)
 	// now unmarshal the string to a map
 	var result map[string]interface{}
 	err := json.Unmarshal([]byte(newcleanstring), &result)
@@ -69,6 +62,6 @@ func Cleancode2(c *gin.Context, output []byte) map[string]interface{} {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal JSON"})
 		return nil
 	}
-	log.Println("Fourth output", result)
+	// log.Println("Fourth output", result)
 	return result
 }

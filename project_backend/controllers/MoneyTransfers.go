@@ -459,24 +459,24 @@ func GetAllTransports(c *gin.Context) {
 	}
 	log.Println("GetAllTransports function called", email)
 	// now prepare to send the request to the chaincode
-	args := chaincode.BuildChaincodeArgs([]string{email}, "GetAllTransports")
+	args := chaincode.BuildChaincodeArgs([]string{email}, "GetAlltransports")
 	output, err := chaincode.RunPeerCommand(args)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	log.Println("GetAllTransports function called", output)
+	// log.Println("GetAllTransports function called", output)
 	// Decode the output
 	result := utils.Cleancode2(c, output)
 	if result == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
 		return
 	}
-	log.Println("GetAllTransports function called", result)
+	// log.Println("GetAllTransports function called", result)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "All transports fetched successfully",
-		"transports":     result["transports"],
+		"transports":     result["availableTransports"],
 		"transaction_id": result["transactionID"],
 	})
 

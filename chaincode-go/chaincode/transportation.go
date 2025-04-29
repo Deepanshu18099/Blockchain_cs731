@@ -254,3 +254,54 @@ func (s *SmartContract) GetAvailableTransports(ctx contractapi.TransactionContex
 	}
 	return availableTransportsJSON, nil
 }
+
+func (s *SmartContract) GetAlltransports(ctx contractapi.TransactionContextInterface, providerID string) ([]byte, error) {
+	/*
+		Input: ProviderID
+		Output: list of available transports, in byte array of arrayy of maps
+	*/
+
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+	var availableTransports []*TransportDetails
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		if !strings.HasPrefix(queryResponse.Key, "transport") {
+			continue
+		}
+
+		var transport TransportDetails
+		err = json.Unmarshal(queryResponse.Value, &transport)
+		if err != nil {
+			// Optional: log error or continue silently
+			continue
+		}
+		if transport.ProviderID == providerID {
+			// remove seatmap
+			transport.SeatMap = map[string][]int32{
+				"": {},
+			}
+			transport.DateofTravel = []string{}
+			// transport
+			availableTransports = append(availableTransports, &transport)
+		}
+	}
+	returnitem := map[string]interface{}{
+		"availableTransports": availableTransports,
+		"transactionID":       ctx.GetStub().GetTxID(),
+		"message":             "Available transports fetched successfully",
+	}
+	// now serializing the data to byte array
+	availableTransportsJSON, err := json.Marshal(returnitem)
+	if err != nil {
+		return nil, fmt.Errorf("error in serializing the data %s", err)
+	}
+	return availableTransportsJSON, nil
+}

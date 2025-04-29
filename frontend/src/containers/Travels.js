@@ -1,73 +1,87 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "./Authcontext.js";
+import { useNavigate } from "react-router-dom";
 
+
+
+/*
+type TransportDetails struct {
+	ID                     string                     `json:"ID"`
+	Source                 string                     `json:"Source"`
+	Destination            string                     `json:"Destination"`
+	DepartureTime          string                     `json:"DepartureTime"`
+	ArrivalTime            string                     `json:"ArrivalTime"`
+	BasePrice              float64                    `json:"BasePrice"`
+	Rating                 float64                    `json:"Rating"`
+	RatingCount		       int32                      `json:"RatingCount"`
+	Capacity               int32                      `json:"Capacity"`
+	ModeofTravel           string                     `json:"ModeofTravel"`
+	JourneyDuration        string                     `json:"JourneyDuration"`
+	DateofTravel           []string                   `json:"DateofTravel"`
+	SeatMap                map[string][]int32         `json:"AvailableSeats"`
+	// Travellers             map[string][]string        `json:"Travellers"`
+	ProviderID             string                     `json:"ProviderID"`
+}
+*/
 const Travels = () => {
   const { token } = useAuth();
   const [travels, setTravels] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const apiurl = process.env.REACT_APP_API_URL;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTravels = async () => {
+        if (!token) {
+            alert("Not authorized");
+            navigate("/signin");
+        }
       try {
+        setLoading(true);
         const response = await axios.get(`${apiurl}GetTransports`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
+        console.log("Response:", response);
 
-        const { ownedtransports } = response.data;
-        console.log("Owned transports:", ownedtransports);
-
-        const travelDetails = await Promise.all(
-          ownedtransports.map(async (transportId) => {
-            const detailRes = await axios.get(`${apiurl}GetDetailTravel/${transportId}`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            });
-            return detailRes.data;
-          })
-        );
-
-        console.log("Detailed travels:", travelDetails);
-        setTravels(travelDetails);
+        
+        setTravels(response.data.transports);
+        console.log("Owned transports:", response.data.transports);
       } catch (error) {
         console.error("Error fetching travels:", error);
-      } finally {
-        setLoading(false);
       }
+    setLoading(false);
     };
 
     fetchTravels();
   }, [apiurl, token]);
 
   const handleDeleteTravel = async (transportId) => {
-    if (!window.confirm("Are you sure you want to delete this travel? All future tickets will be cancelled.")) {
-      return;
-    }
-    try {
-      const response = await axios.delete(`${apiurl}DeleteTravel/${transportId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+//     if (!window.confirm("Are you sure you want to delete this travel? All future tickets will be cancelled.")) {
+//       return;
+//     }
+//     try {
+//       const response = await axios.delete(`${apiurl}DeleteTravel/${transportId}`, {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       });
 
-      if (response.status === 200) {
-        alert("Travel deleted and future tickets cancelled successfully!");
-        setTravels((prev) => prev.filter((travel) => travel.TransportID !== transportId));
-      } else {
-        alert("Failed to delete travel.");
-      }
-    } catch (error) {
-      console.error("Error deleting travel:", error);
-      alert("Failed to delete travel.");
-    }
+//       if (response.status === 200) {
+//         alert("Travel deleted and future tickets cancelled successfully!");
+//         setTravels((prev) => prev.filter((travel) => travel.TransportID !== transportId));
+//       } else {
+//         alert("Failed to delete travel.");
+//       }
+//     } catch (error) {
+//       console.error("Error deleting travel:", error);
+//       alert("Failed to delete travel.");
+//     }
   };
 
   if (loading) return <div className="text-center mt-8">Loading your travels...</div>;
@@ -80,22 +94,23 @@ const Travels = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {travels.map((travel) => (
-          <div key={travel.TransportID} className="border rounded-lg shadow-md p-4 bg-white">
-            <p><strong>Transport ID:</strong> {travel.TransportID}</p>
-            <p><strong>Travel Date:</strong> {travel.DateofTravel}</p>
-            <p><strong>Source:</strong> {travel.Source}</p>
-            <p><strong>Destination:</strong> {travel.Destination}</p>
-            <p><strong>Mode:</strong> {travel.ModeofTravel}</p>
-            <p><strong>Seats Available:</strong> {travel.SeatsAvailable}</p>
-            <p><strong>Price:</strong> ₹{travel.Price}</p>
-            <div className="flex gap-4 mt-4">
-              <button
-                onClick={() => handleDeleteTravel(travel.TransportID)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              >
-                Delete Travel
-              </button>
-            </div>
+          <div key={travel.TransportID} className="bg-white p-4 rounded shadow-md">
+            <h3 className="text-lg font-semibold">{travel.Source} to {travel.Destination}</h3>
+            <p>Departure: {travel.DepartureTime}</p>
+            <p>Arrival: {travel.ArrivalTime}</p>
+            <p>Base Price: ${travel.BasePrice}</p>
+            <p>Rating: {travel.Rating} ({travel.RatingCount} reviews)</p>
+            <p>Capacity: {travel.Capacity}</p>
+            {/* first key of seatmap will contain array of seats available */}
+            {/* <p>Capacity: {travel.SeatMap[Object.keys(travel.SeatMap)[0]].length} seats available</p> */}
+            <p>Mode of Travel: {travel.ModeofTravel}</p>
+            {/* <p>Date of travels: {travel.DateofTravel.join(", ")[0]}, {travel.DateofTravel.join(", ")[1]}</p> */}
+            <button
+              onClick={() => handleDeleteTravel(travel.TransportID)}
+              className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Delete Travel
+            </button>
           </div>
         ))}
       </div>
