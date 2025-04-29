@@ -38,14 +38,13 @@ func (s *SmartContract) GetDetailUser(ctx contractapi.TransactionContextInterfac
 	return User{
 		Email: "",
 		Name:  "",
-		// Plus other safe fields if you want
-		// PastTravels:     user.PastTravels,
-		// UpcomingTravels: user.UpcomingTravels,
 		Travels:     user.Travels,
 		BankBalance: user.BankBalance,
 		PaymentID:   user.PaymentID,
 	}, nil
 }
+
+
 
 func (s *SmartContract) GetDetailProvider(ctx contractapi.TransactionContextInterface, providerID string) (Provider, error) {
 	providerJSON, err := ctx.GetStub().GetState(providerID)

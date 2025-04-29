@@ -43,6 +43,7 @@ func main() {
 	router.POST("/ledger/login", controllers.Login)
 	router.POST("/ledger/addMoney", controllers.AddMoneyToUser)
 	router.POST("/Addtransport", controllers.AddTransport)
+	router.GET("/GetTransports", controllers.GetAllTransports)
 
 	// to get all transports available for that selections by the user
 	// `http://localhost:8080/Gettransports/${mode}/${source}/${destination}/${date}`,

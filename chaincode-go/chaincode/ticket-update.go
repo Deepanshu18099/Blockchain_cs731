@@ -25,44 +25,45 @@ newTicket ID should be updated in the user's upcoming travel
 previous date's seat should be now available
 new seat should be now allotted to the user and removed from the seat map
 */
-func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface, ticketID, date string, newSeat int32) error {
+func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface, ticketID, date string, newSeat int32) ([]byte, error) {
 	/*the updated date can't be in the past*/
 	inputDate, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		return fmt.Errorf("error parsing input date: %v", err)
+		return nil, fmt.Errorf("error parsing input date: %v", err)
 	}
-	currDate := time.Now()
+	currDate := time.
+		Now()
 	if inputDate.Before(currDate) {
-		return fmt.Errorf("error: the date is gone")
+		return nil, fmt.Errorf("error: the date is gone")
 	}
 
 	/*getting the details of the booked ticket*/
 	ticketJSON, err := ctx.GetStub().GetState(ticketID)
 	if err != nil {
-		return fmt.Errorf("error occured while fetching the ticket details")
+		return nil, fmt.Errorf("error occured while fetching the ticket details")
 	}
 	if ticketJSON == nil {
-		return fmt.Errorf("ticket doesn't exists with the ticket ID: %s", ticketID)
+		return nil, fmt.Errorf("ticket doesn't exists with the ticket ID: %s", ticketID)
 	}
 	var ticket TicketDetails
 	err = json.Unmarshal(ticketJSON, &ticket)
 	if err != nil {
-		return fmt.Errorf("error occured while creating the ticket variable")
+		return nil, fmt.Errorf("error occured while creating the ticket variable")
 	}
 
 	/*getting the details of the transport*/
 	transportID := ticket.TransportID
 	transportJSON, err := ctx.GetStub().GetState(transportID)
 	if err != nil {
-		return fmt.Errorf("error occured while fetching the transoirt details")
+		return nil, fmt.Errorf("error occured while fetching the transoirt details")
 	}
 	if transportJSON == nil {
-		return fmt.Errorf("error the transport associated with this ticket does not exist")
+		return nil, fmt.Errorf("error the transport associated with this ticket does not exist")
 	}
 	var transport TransportDetails
 	err = json.Unmarshal(transportJSON, &transport)
 	if err != nil {
-		return fmt.Errorf("error while pointing to the transport details")
+		return nil, fmt.Errorf("error while pointing to the transport details")
 	}
 
 	/*getting the user's details to impose the penalty*/
@@ -70,14 +71,14 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	var user User
 	userJSON, err := ctx.GetStub().GetState(userID)
 	if err != nil {
-		return fmt.Errorf("error in fetching the user details")
+		return nil, fmt.Errorf("error in fetching the user details")
 	}
 	if userJSON == nil {
-		return fmt.Errorf("error: the user doesn't exist")
+		return nil, fmt.Errorf("error: the user doesn't exist")
 	}
 	err = json.Unmarshal(userJSON, &user)
 	if err != nil {
-		return fmt.Errorf("error in pointing to the user JSON")
+		return nil, fmt.Errorf("error in pointing to the user JSON")
 	}
 
 	/*calculating the penalty to be imposed*/
@@ -89,7 +90,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 	penaltyPrice += newTicketPrice - previousTicketPrice /*extra to be paid according to the dynamic price*/
 
 	if user.BankBalance < penaltyPrice {
-		return fmt.Errorf("error: the user doesn't have sufficient balance to pay the penaly charge for ticket update")
+		return nil, fmt.Errorf("error: the user doesn't have sufficient balance to pay the penaly charge for ticket update")
 	}
 
 	/*removing the newSeat from the new travel date*/
@@ -102,7 +103,7 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 		}
 	}
 	if flag {
-		return fmt.Errorf("error: the seat is already booked")
+		return nil, fmt.Errorf("error: the seat is already booked")
 	}
 
 	// user.BankBalance -= penaltyPrice /*penalty imposed*/
@@ -112,15 +113,15 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 
 	providerJSON, err := ctx.GetStub().GetState(transport.ProviderID)
 	if err != nil {
-		return fmt.Errorf("error %s occured", err)
+		return nil, fmt.Errorf("error %s occured", err)
 	}
 	if providerJSON == nil {
-		return fmt.Errorf("error: provider %s doesn't exist", transport.ProviderID)
+		return nil, fmt.Errorf("error: provider %s doesn't exist", transport.ProviderID)
 	}
 	var provider Provider
 	err = json.Unmarshal(providerJSON, &provider)
 	if err != nil {
-		return fmt.Errorf("error: failed to unmarshal provider %s", transport.ProviderID)
+		return nil, fmt.Errorf("error: failed to unmarshal provider %s", transport.ProviderID)
 	}
 
 	user.BankBalance -= penaltyPrice
@@ -164,12 +165,12 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 
 	updatedUserJSON, err := json.Marshal(user)
 	if err != nil || updatedUserJSON == nil {
-		return fmt.Errorf("error while making JSON of the updated user")
+		return nil, fmt.Errorf("error while making JSON of the updated user")
 	}
 	err = ctx.GetStub().PutState(userID, updatedUserJSON)
 
 	if err != nil {
-		return fmt.Errorf("error while updating the user details in the hyperledger")
+		return nil, fmt.Errorf("error while updating the user details in the hyperledger")
 	}
 	//new seat number updated in the record successfully
 	// transport.Travellers[previousDate][previousSeat]="" /*removing the userID from previously booked seat*/
@@ -182,13 +183,20 @@ func (s *SmartContract) UpdateTicket(ctx contractapi.TransactionContextInterface
 
 	updatedTicketJSON, err := json.Marshal(ticket)
 	if err != nil {
-		return fmt.Errorf("error in converting ticket to JSON format")
+		return nil, fmt.Errorf("error in converting ticket to JSON format")
 	}
 
 	err = ctx.GetStub().DelState(ticketID) /*the previous ticket is deleted*/
 	if err != nil {
-		return fmt.Errorf("failed to delete old ticket entry: %v", err)
+		return nil, fmt.Errorf("failed to delete old ticket entry: %v", err)
 	}
-	return ctx.GetStub().PutState(newTicketID, updatedTicketJSON)
+	// map
+	returnitem := map[string]interface{}{
+		"NewTicketID": newTicketID,
+	}
+	returnitemJSON, err := json.Marshal(returnitem)
+	if err != nil {
+		return nil, fmt.Errorf("error while setting event: %s", err)
+	}
+	return returnitemJSON, ctx.GetStub().PutState(newTicketID, updatedTicketJSON) /*new ticket ID is added to the ledger*/
 }
-

@@ -202,44 +202,6 @@ func BookTicket(c *gin.Context) {
 
 }
 
-func GetUserTickets(c *gin.Context) {
-	/*
-		Input: Auth token
-		Output: List of tickets booked by the user
-	*/
-	// use authmiddleware to check if token is valid and get claims
-	// using the authcheck function
-	claims, ok := utils.Authcheck(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-		c.Abort()
-		return
-	}
-	email, ok := claims["email"].(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-		c.Abort()
-		return
-	}
-	// now prepare to send the request to the chaincode
-	args := chaincode.BuildChaincodeArgs([]string{email}, "GetUserTickets")
-	output, err := chaincode.RunPeerCommand(args)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	log.Println("GetUserTickets function called", output)
-	// Decode the output
-	// ...............................
-
-	// now return success, and transport details
-	c.JSON(http.StatusOK, gin.H{
-		"message":        "User tickets fetched successfully",
-		"tickets":        "List of tickets",
-		"transaction_id": "tx_10101",
-	})
-}
-
 func AddTransport(c *gin.Context) {
 	/*
 		Input: Auth token, Source, Destination, Date, Price, ticketcount
@@ -382,4 +344,303 @@ func GetTransportStatus(c *gin.Context) {
 		"vacancy": "10",
 	})
 
+}
+
+/*now in home, I want option in navbar to view previous bookings, which will result in new page listing user tickets, from ticket id in "userbookings" from this api response
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const apiurl = process.env.REACT_APP_API_URL;
+    try {
+      const response = await axios.post(${apiurl}ledger/login, { email, password });
+
+      if (response.status !== 200) {
+        setErrors({ api: "Error signing in" });
+        return;
+      }
+      console.log(response)
+      const { token, userid, role, balance } = response.data
+
+      login(token, userid, role, balance)
+
+      navigate("/home");
+    } catch (error) {
+      console.error("Error signing in:", error);
+      setErrors({ api: "Invalid credentials" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+for each ticket in the list call GetDetailTicket api to get tickets in this form
+		TicketID:        ticket.TicketID,
+		DateofTravel:    ticket.DateofTravel,
+		Source:          ticket.Source,
+		Destination:     ticket.Destination,
+		ModeofTravel:    ticket.ModeofTravel,
+		TransportID:     ticket.TransportID,
+		SeatNumber:      ticket.SeatNumber,
+		Price:           ticket.Price,
+		ArrivalTime:     ticket.ArrivalTime,
+		DepartureTime:   ticket.DepartureTime,
+		JourneyDuration: ticket.JourneyDuration,
+		DateofBooking:   ticket.DateofBooking,
+		DateofUpdate:    ticket.DateofUpdate,
+		PaymentStatus:   ticket.PaymentStatus,
+		IsActive:        ticket.IsActive,
+		Status:          ticket.Status,
+*/
+
+func GetTickets(c *gin.Context) {
+	/*
+		Input: Token
+		GIVE List of tickets by that user if user, else listings by provider
+		Output: List of tickets(IDS) with details
+	*/
+
+	// Get the user ID from the token
+	claims, ok := utils.Authcheck(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	email, ok := claims["email"].(string)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+	log.Println("GetTickets function called", email)
+	// now prepare to send the request to the chaincode
+	args := chaincode.BuildChaincodeArgs([]string{email}, "GetDetailUser")
+	output, err := chaincode.RunPeerCommand(args)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Println("GetTickets function called", output)
+	// Decode the output
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("GetTickets function called", result)
+
+	// now return success, and transport details
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "User tickets fetched successfully",
+		"tickets":        result["Travels"],
+		"transaction_id": result["transactionID"],
+	})
+}
+
+func GetAllTransports(c *gin.Context) {
+	/*
+		Input: Auth token
+		Output: List of all transports available of provider
+	*/
+	// use authmiddleware to check if token is valid and get claims
+	// using the authcheck function
+	claims, ok := utils.Authcheck(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+	email, ok := claims["email"].(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+	log.Println("GetAllTransports function called", email)
+	// now prepare to send the request to the chaincode
+	args := chaincode.BuildChaincodeArgs([]string{email}, "GetAllTransports")
+	output, err := chaincode.RunPeerCommand(args)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println("GetAllTransports function called", output)
+	// Decode the output
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("GetAllTransports function called", result)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "All transports fetched successfully",
+		"transports":     result["transports"],
+		"transaction_id": result["transactionID"],
+	})
+
+}
+
+func GetTicketByID(c *gin.Context) {
+	/*
+		Input: Token
+		GIVE List of tickets by that user if user, else listings by provider
+		Output: List of tickets(IDS) with details
+	*/
+	// Get the user ID from the token
+	claims, ok := utils.Authcheck(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	email, ok := claims["email"].(string)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+
+	// get the ticket id from the url
+	ticketID := c.Param("id")
+	log.Println("GetTicketByID function called", email, ticketID)
+	// now prepare to send the request to the chaincode
+	args := chaincode.BuildChaincodeArgs([]string{ticketID}, "GetDetailTicket")
+	output, err := chaincode.RunPeerCommand(args)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Println("GetTicketByID function called", output)
+	// Decode the output
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("GetTicketByID function called", result)
+	// now return success, and transport details
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User tickets fetched successfully",
+		"ticket":  result,
+	})
+}
+
+func DeleteTicket(c *gin.Context) {
+	/*
+		Input: Token
+		GIVE id of ticket to be deleted
+		Output: success message
+	*/
+	// Get the user ID from the token
+	claims, ok := utils.Authcheck(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	email, ok := claims["email"].(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+
+	// get the ticket id from the url
+	ticketID := c.Param("id")
+	log.Println("DeleteTicket function called", email, ticketID)
+	// now prepare to send the request to the chaincode, send email and ticketID
+	args := chaincode.BuildChaincodeArgs([]string{email, ticketID}, "CancelTicket")
+	output, err := chaincode.RunPeerCommand(args)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println("DeleteTicket function called", output)
+	// Decode the output
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("DeleteTicket function called", result)
+	// now return success, and transport details
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Ticket deleted successfully",
+	})
+}
+
+func UpdateTicket(c *gin.Context) {
+	/*
+		Input: Token, new params of ticket
+		Will update the params given to new state
+		Output: success message
+	*/
+	// Get the user ID from the token
+	claims, ok := utils.Authcheck(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	email, ok := claims["email"].(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		c.Abort()
+		return
+	}
+
+	// get the ticket id from the url
+	ticketID := c.Param("id")
+
+	// newTicketDate, ok := claims["newTicketDate"].(string)
+	// if !ok {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "TicketDate error"})
+	// 	return
+	// }
+
+	// newSeatNum, ok := claims["newSeatNum"].(string)
+	// if !ok {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "SeatNum error"})
+	// 	return
+	// }
+
+	type UpdateTicketRequest struct {
+		DateofTravel string `json:"DateofTravel"`
+		SeatNumber   string `json:"SeatNumber"`
+	}
+
+	var Thisreq UpdateTicketRequest
+	if err := c.ShouldBindJSON(&Thisreq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	newTicketDate := Thisreq.DateofTravel
+	newSeatNum := Thisreq.SeatNumber
+
+	log.Println("UpdateTicket function called", email, ticketID)
+	// now prepare to send the request to the chaincode, send email and ticketID
+	args := chaincode.BuildChaincodeArgs([]string{ticketID, newTicketDate, newSeatNum}, "UpdateTicket")
+	output, err := chaincode.RunPeerCommand(args)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println("UpdateTicket function called", string(output))
+
+	result := utils.Cleancode2(c, output)
+	if result == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode output"})
+		return
+	}
+	log.Println("UpdateTicket function called", result)
+
+	// Decode the output
+	// now return success, and transport details
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "Ticket updated successfully",
+		"NewTicketID": result["NewTicketID"],
+	})
 }

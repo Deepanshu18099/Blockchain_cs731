@@ -222,10 +222,11 @@ func Login(c *gin.Context) {
 	}
 	// Return the token to the client
 	c.JSON(http.StatusOK, gin.H{
-		"token":   tokenString,
-		"role":    existingUser.Role,
-		"userid":  existingUser.UserID,
-		"balance": result["BankBalance"],
+		"token":        tokenString,
+		"role":         existingUser.Role,
+		"userid":       existingUser.UserID,
+		"balance":      result["BankBalance"],
+		"userbookings": result["Travels"],
 	})
 
 }

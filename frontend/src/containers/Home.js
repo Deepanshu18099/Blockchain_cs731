@@ -215,6 +215,7 @@ function Home() {
       if (response.status === 200) {
         alert("Money added successfully!");
         setBalance((prevBalance) => Number(prevBalance) + Number(addMoneyAmount));
+        localStorage.setItem("balance", balance + Number(addMoneyAmount));
         setAddMoneyAmount("");
       } else {
         alert("Failed to add money.");
@@ -234,10 +235,32 @@ function Home() {
           {/* for role of user */}
           {userId && (
             <>
-              <div className="text-sm">
-                <p><strong>User ID:</strong> {userId}</p>
+              <button
+                      onClick={() => {
+                        if (role === "provider"){
+                          navigate("/travels")
+                        } else {
+                          navigate("/bookings")
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                    >
+                {role === "user" && <h5>Previous Bookings</h5>}
+                {role === "provider" && <h5>Listed Travelles</h5>}
+              </button>
+              {/* should show horizontally child divs*/}
+              <div className="text-sm text-gray-600">
+                <strong>User ID:</strong> {userId}
+                </div>
+              <div className="text-sm text-gray-600">
+
                 <p><strong>Role:</strong> {role}</p>
+                </div>
+
+              <div className="text-sm text-gray-600">
+
                 <p><strong>Balance:</strong> ₹{balance}</p>
+          
               </div>
               <div className="relative">
                 <FaUserCircle
