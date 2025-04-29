@@ -14,9 +14,9 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-type SmartContract struct {
-	contractapi.Contract
-}
+// type SmartContract struct {
+// 	contractapi.Contract
+// }
 
 func (t *SmartContract) detailExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	detailJSON, err := ctx.GetStub().GetState(id)
