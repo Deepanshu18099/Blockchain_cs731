@@ -31,7 +31,7 @@ Setup Instructions
 
 
 
-### 1. Clone the Repository
+# 1. Clone the Repository
 
 ```bash
 cd ~{HyperledgerPath}/fabric-samples/asset-transfer-basic
@@ -39,8 +39,8 @@ git clone https://github.com/Deepanshu18099/Blockchain_cs731/ chaincode-go
 ```
 
 
-## To Start the Hyperledger Fabric Network
-# Set environment variables
+# To Start the Hyperledger Fabric Network
+### Set environment variables
 
 ```bash
 export HyperledgerPath=~/fabric-samples-path
@@ -50,46 +50,47 @@ export CORE_PEER_LOCALMSPID=Org1MSP
 export CORE_PEER_MSPCONFIGPATH=${HyperledgerPath}/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/
 export CORE_PEER_ADDRESS=peer0.org1.example.com:7051
 export CORE_PEER_TLS_ROOTCERT_FILE=${HyperledgerPath}/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-
-# Start Fabric Network
-${HyperledgerPath}/fabric-samples/test-network/network.sh up
-
-# Create a Channel
-${HyperledgerPath}/fabric-samples/test-network/network.sh createChannel -c ticketsystem
-
-# Deploy the Chaincode
-${HyperledgerPath}/fabric-samples/test-network/network.sh deployCC -ccn keyvalchaincode -ccp ${HyperledgerPath}/fabric-samples/asset-transfer-basic/chaincode-go -ccl go -c ticketsystem
 ```
 
+### Start Fabric Network
+${HyperledgerPath}/fabric-samples/test-network/network.sh up
+
+### Create a Channel
+${HyperledgerPath}/fabric-samples/test-network/network.sh createChannel -c ticketsystem
+
+### Deploy the Chaincode
+```
+${HyperledgerPath}/fabric-samples/test-network/network.sh deployCC -ccn keyvalchaincode -ccp ${HyperledgerPath}/fabric-samples/asset-transfer-basic/chaincode-go -ccl go -c ticketsystem
+```
 
 
 ## Run the Backend API Server
 cd ./backend
 
-# Install dependencies
+### Install dependencies
 go mod tidy
 
-# Run backend server (main.go is inside /cmd)
+### Run backend server (main.go is inside /cmd)
 cd cmd
 go run main.go
 
 
 
 ## Run the Frontend (React App)
-# Navigate to frontend directory
+### Navigate to frontend directory
 cd chaincode-go/frontend
 
-# Install frontend dependencies
+### Install frontend dependencies
 npm install
 
-# Start the React app
+### Start the React app
 npm start
 
 
 
-## Useful Peer CLI Commands (for Hyperledger Fabric)
+# Useful Peer CLI Commands (for Hyperledger Fabric)
 
-### Setup Chaincode
+## Setup Chaincode
 ```bash
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com \
 --tls --cafile ${HyperledgerPath}/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
